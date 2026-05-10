@@ -271,6 +271,11 @@ module.exports = {
       ]
     });
 
+    await interaction.reply({
+      content: `Ticket created: ${ticketChannel}`,
+      ephemeral: true
+    });
+
     const embed = new EmbedBuilder()
       .setTitle(config.label)
       .setColor(config.color)
@@ -294,11 +299,6 @@ module.exports = {
       content: `<@${interaction.user.id}> <@&${STAFF_ROLE_ID}>`,
       embeds: [embed],
       components: createCloseButton()
-    });
-
-    return interaction.reply({
-      content: `Ticket created: ${ticketChannel}`,
-      ephemeral: true
     });
   }
 };
