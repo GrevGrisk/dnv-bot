@@ -224,10 +224,16 @@ module.exports = {
   async handleModal(interaction) {
     if (!interaction.customId.startsWith("ticket_modal_")) return;
 
+    await interaction.deferReply({ ephemeral: true });
+
     const type = interaction.customId.replace("ticket_modal_", "");
     const config = ticketTypes[type];
 
-    if (!config) return;
+    if (!config) {
+      return interaction.editReply({
+        content: "Invalid ticket type."
+      });
+    }
 
     const username = cleanName(interaction.user.username);
     const channelName = `${config.channelPrefix}-${username}`;
@@ -237,9 +243,8 @@ module.exports = {
     );
 
     if (existing) {
-      return interaction.reply({
-        content: `You already have an open ticket: ${existing}`,
-        ephemeral: true
+      return interaction.editReply({
+        content: `You already have an open ticket: ${existing}`
       });
     }
 
@@ -251,6 +256,18 @@ module.exports = {
         {
           id: interaction.guild.id,
           deny: [PermissionFlagsBits.ViewChannel]
+        },
+        {
+          id: interaction.client.user.id,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.EmbedLinks,
+            PermissionFlagsBits.AttachFiles,
+            PermissionFlagsBits.ReadMessageHistory,
+            PermissionFlagsBits.ManageChannels,
+            PermissionFlagsBits.ManageMessages
+          ]
         },
         {
           id: interaction.user.id,
@@ -265,15 +282,12 @@ module.exports = {
           allow: [
             PermissionFlagsBits.ViewChannel,
             PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.EmbedLinks,
+            PermissionFlagsBits.AttachFiles,
             PermissionFlagsBits.ReadMessageHistory
           ]
         }
       ]
-    });
-
-    await interaction.reply({
-      content: `Ticket created: ${ticketChannel}`,
-      ephemeral: true
     });
 
     const embed = new EmbedBuilder()
@@ -299,6 +313,10 @@ module.exports = {
       content: `<@${interaction.user.id}> <@&${STAFF_ROLE_ID}>`,
       embeds: [embed],
       components: createCloseButton()
+    });
+
+    return interaction.editReply({
+      content: `Ticket created: ${ticketChannel}`
     });
   }
 };
