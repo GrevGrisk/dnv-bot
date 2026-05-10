@@ -4,6 +4,7 @@ const { Client, Collection, GatewayIntentBits } = require("discord.js");
 
 const friendlyEnemy = require("./modules/friendly-enemy");
 const reportIncident = require("./modules/report-incident");
+const tickets = require("./modules/tickets");
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
@@ -12,6 +13,7 @@ const client = new Client({
 client.modules = new Collection();
 client.modules.set(friendlyEnemy.name, friendlyEnemy);
 client.modules.set(reportIncident.name, reportIncident);
+client.modules.set(tickets.name, tickets);
 
 client.once("clientReady", () => {
   console.log(`Logged in as ${client.user.tag}`);
