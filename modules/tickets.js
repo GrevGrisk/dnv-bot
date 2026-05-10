@@ -19,6 +19,12 @@ const TICKET_CATEGORY_ID = "1503011829280931840";
 const STAFF_ROLE_ID = "1499380210703794287";
 const TRANSCRIPT_CHANNEL_ID = "1503014308605333625";
 
+const DNV_ROLE_ID = "1499355512922443828";
+const CREW_ROLE_ID = "1499355062168715264";
+const FIRST_MATE_ROLE_ID = "1499354585024692294";
+const CAPTAIN_ROLE_ID = "1499353795925377055";
+const DNV_FRIEND_ROLE_ID = "1499388464070660236";
+
 const logoPath = path.join(__dirname, "../assets/dnv.png");
 
 const ticketTypes = {
@@ -136,14 +142,58 @@ function createTicketModal(type) {
 }
 
 function createCloseButton() {
-  return [
-    new ActionRowBuilder().addComponents(
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("ticket_close")
+      .setLabel("Close ticket")
+      .setStyle(ButtonStyle.Danger)
+  );
+}
+
+function createRoleButtons(type) {
+  if (type === "guild") {
+    return new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId("ticket_close")
-        .setLabel("Close ticket")
-        .setStyle(ButtonStyle.Danger)
-    )
-  ];
+        .setCustomId("ticket_role_crew")
+        .setLabel("Crew")
+        .setStyle(ButtonStyle.Success),
+
+      new ButtonBuilder()
+        .setCustomId("ticket_role_first_mate")
+        .setLabel("1st Mate")
+        .setStyle(ButtonStyle.Success),
+
+      new ButtonBuilder()
+        .setCustomId("ticket_role_captain")
+        .setLabel("Captain")
+        .setStyle(ButtonStyle.Primary)
+    );
+  }
+
+  if (type === "friend") {
+    return new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("ticket_role_dnv_friend")
+        .setLabel("Assign DNV Friend")
+        .setStyle(ButtonStyle.Success)
+    );
+  }
+
+  return null;
+}
+
+function getTicketUserId(channel) {
+  if (!channel.topic) return null;
+
+  const match = channel.topic.match(/user:(\d+)/);
+  return match ? match[1] : null;
+}
+
+function getTicketType(channel) {
+  if (!channel.topic) return null;
+
+  const match = channel.topic.match(/type:([a-z]+)/);
+  return match ? match[1] : null;
 }
 
 async function createTranscript(channel) {
@@ -169,6 +219,73 @@ async function createTranscript(channel) {
   }).join("\n");
 }
 
+async function handleRoleButton(interaction) {
+  if (!interaction.member.roles.cache.has(STAFF_ROLE_ID)) {
+    return interaction.reply({
+      content: "You do not have permission to use this button.",
+      ephemeral: true
+    });
+  }
+
+  const targetUserId = getTicketUserId(interaction.channel);
+  const ticketType = getTicketType(interaction.channel);
+
+  if (!targetUserId) {
+    return interaction.reply({
+      content: "Could not find ticket owner.",
+      ephemeral: true
+    });
+  }
+
+  const member = await interaction.guild.members.fetch(targetUserId).catch(() => null);
+
+  if (!member) {
+    return interaction.reply({
+      content: "Could not find the member in this server.",
+      ephemeral: true
+    });
+  }
+
+  let rolesToAdd = [];
+  let roleName = "";
+
+  if (ticketType === "guild") {
+    if (interaction.customId === "ticket_role_crew") {
+      rolesToAdd = [DNV_ROLE_ID, CREW_ROLE_ID];
+      roleName = "DNV + Crew";
+    }
+
+    if (interaction.customId === "ticket_role_first_mate") {
+      rolesToAdd = [DNV_ROLE_ID, FIRST_MATE_ROLE_ID];
+      roleName = "DNV + 1st Mate";
+    }
+
+    if (interaction.customId === "ticket_role_captain") {
+      rolesToAdd = [DNV_ROLE_ID, CAPTAIN_ROLE_ID];
+      roleName = "DNV + Captain";
+    }
+  }
+
+  if (ticketType === "friend" && interaction.customId === "ticket_role_dnv_friend") {
+    rolesToAdd = [DNV_FRIEND_ROLE_ID];
+    roleName = "DNV Friend";
+  }
+
+  if (!rolesToAdd.length) {
+    return interaction.reply({
+      content: "This role button does not match this ticket type.",
+      ephemeral: true
+    });
+  }
+
+  await member.roles.add(rolesToAdd);
+
+  return interaction.reply({
+    content: `${roleName} assigned to <@${targetUserId}>.`,
+    ephemeral: false
+  });
+}
+
 module.exports = {
   name: "tickets",
 
@@ -187,6 +304,10 @@ module.exports = {
       if (!ticketTypes[type]) return;
 
       return interaction.showModal(createTicketModal(type));
+    }
+
+    if (interaction.customId.startsWith("ticket_role_")) {
+      return handleRoleButton(interaction);
     }
 
     if (interaction.customId === "ticket_close") {
@@ -252,6 +373,7 @@ module.exports = {
       name: channelName,
       type: ChannelType.GuildText,
       parent: TICKET_CATEGORY_ID,
+      topic: `ticket:true user:${interaction.user.id} type:${type}`,
       permissionOverwrites: [
         {
           id: interaction.guild.id,
@@ -309,10 +431,17 @@ module.exports = {
       });
     }
 
+    const components = [createCloseButton()];
+    const roleButtons = createRoleButtons(type);
+
+    if (roleButtons) {
+      components.push(roleButtons);
+    }
+
     await ticketChannel.send({
       content: `<@${interaction.user.id}> <@&${STAFF_ROLE_ID}>`,
       embeds: [embed],
-      components: createCloseButton()
+      components
     });
 
     return interaction.editReply({
