@@ -153,15 +153,7 @@ module.exports = {
     .setDescription("Open the ticket panel."),
 
   async execute(interaction) {
-    console.log("Tickets command executed");
-
-    await interaction.reply({
-      content: "Ticket command works.",
-      ephemeral: true
-    });
-
-    // Når denne testen fungerer, bytt denne execute-funksjonen tilbake til:
-    // await interaction.reply(createTicketPanel());
+    await interaction.reply(createTicketPanel());
   },
 
   async handleButton(interaction) {
@@ -224,9 +216,7 @@ module.exports = {
     const channelName = `${config.channelPrefix}-${username}`;
 
     const existing = interaction.guild.channels.cache.find(
-      c =>
-        c.name === channelName &&
-        c.parentId === TICKET_CATEGORY_ID
+      c => c.name === channelName && c.parentId === TICKET_CATEGORY_ID
     );
 
     if (existing) {
@@ -267,9 +257,11 @@ module.exports = {
     const embed = new EmbedBuilder()
       .setTitle(config.label)
       .setColor(config.color)
-      .addFields(
-        { name: "Opened by", value: `<@${interaction.user.id}>`, inline: true }
-      )
+      .addFields({
+        name: "Opened by",
+        value: `<@${interaction.user.id}>`,
+        inline: true
+      })
       .setTimestamp();
 
     for (const [id, label] of config.fields) {
