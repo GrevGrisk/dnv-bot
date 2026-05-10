@@ -153,7 +153,15 @@ module.exports = {
     .setDescription("Open the ticket panel."),
 
   async execute(interaction) {
-    await interaction.reply(createTicketPanel());
+    console.log("Tickets command executed");
+
+    await interaction.reply({
+      content: "Ticket command works.",
+      ephemeral: true
+    });
+
+    // Når denne testen fungerer, bytt denne execute-funksjonen tilbake til:
+    // await interaction.reply(createTicketPanel());
   },
 
   async handleButton(interaction) {
