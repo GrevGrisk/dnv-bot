@@ -12,9 +12,14 @@ const {
   AttachmentBuilder
 } = require("discord.js");
 
+const fs = require("fs");
+const path = require("path");
+
 const TICKET_CATEGORY_ID = "1503011829280931840";
 const STAFF_ROLE_ID = "1499380210703794287";
 const TRANSCRIPT_CHANNEL_ID = "1503014308605333625";
+
+const logoPath = path.join(__dirname, "../assets/dnv.png");
 
 const ticketTypes = {
   guild: {
@@ -67,9 +72,24 @@ function cleanName(name) {
 
 function createTicketPanel() {
   const embed = new EmbedBuilder()
-    .setTitle("Tickets")
-    .setDescription("Choose the ticket type you want to open.")
+    .setTitle("DNV Support Tickets")
+    .setDescription(
+      [
+        "Use the buttons below to open a ticket.",
+        "",
+        "Request guild access",
+        "Request friend access",
+        "General questions"
+      ].join("\n")
+    )
     .setColor(0xff9900);
+
+  const files = [];
+
+  if (fs.existsSync(logoPath)) {
+    embed.setImage("attachment://dnv.png");
+    files.push(new AttachmentBuilder(logoPath, { name: "dnv.png" }));
+  }
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
@@ -88,7 +108,11 @@ function createTicketPanel() {
       .setStyle(ButtonStyle.Secondary)
   );
 
-  return { embeds: [embed], components: [row] };
+  return {
+    embeds: [embed],
+    components: [row],
+    files
+  };
 }
 
 function createTicketModal(type) {
@@ -167,13 +191,6 @@ module.exports = {
 
     if (interaction.customId === "ticket_close") {
       const channel = interaction.channel;
-
-      if (!channel || !channel.name) {
-        return interaction.reply({
-          content: "Could not close this ticket.",
-          ephemeral: true
-        });
-      }
 
       await interaction.reply({
         content: "Creating transcript and closing ticket...",
