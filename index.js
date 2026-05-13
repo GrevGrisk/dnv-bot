@@ -5,6 +5,7 @@ const { Client, Collection, GatewayIntentBits } = require("discord.js");
 const friendlyEnemy = require("./modules/friendly-enemy");
 const reportIncident = require("./modules/report-incident");
 const tickets = require("./modules/tickets");
+const steamNews = require("./modules/steam_news");
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
@@ -14,9 +15,11 @@ client.modules = new Collection();
 client.modules.set(friendlyEnemy.name, friendlyEnemy);
 client.modules.set(reportIncident.name, reportIncident);
 client.modules.set(tickets.name, tickets);
+client.modules.set(steamNews.name, steamNews);
 
 client.once("clientReady", () => {
   console.log(`Logged in as ${client.user.tag}`);
+  steamNews.start(client);
 });
 
 client.on("interactionCreate", async interaction => {
