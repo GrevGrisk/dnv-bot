@@ -86,15 +86,14 @@ async function checkSteamNews(client) {
     const saved = loadData();
     const latestGid = news[0].gid;
 
+    // Første oppstart: poster nyeste først
     if (!saved.last_gid) {
-      const firstPosts = [...news].reverse();
-
-      for (const item of firstPosts) {
+      for (const item of news) {
         await sendNewsItem(channel, item);
       }
 
       saveData(latestGid);
-      console.log("[Steam News] Postet siste 5 nyheter.");
+      console.log("[Steam News] Postet siste 5 nyheter, nyeste først.");
       return;
     }
 
@@ -110,12 +109,13 @@ async function checkSteamNews(client) {
       return;
     }
 
-    for (const item of newPosts.reverse()) {
+    // Nye nyheter postes også nyeste først
+    for (const item of newPosts) {
       await sendNewsItem(channel, item);
     }
 
     saveData(latestGid);
-    console.log(`[Steam News] Postet ${newPosts.length} ny(e) Steam-nyhet(er).`);
+    console.log(`[Steam News] Postet ${newPosts.length} ny(e) Steam-nyhet(er), nyeste først.`);
 
   } catch (err) {
     console.error("[Steam News Error]", err);
