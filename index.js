@@ -16,6 +16,7 @@ const client = new Client({
 });
 
 client.modules = new Collection();
+
 client.modules.set(friendlyEnemy.name, friendlyEnemy);
 client.modules.set(reportIncident.name, reportIncident);
 client.modules.set(tickets.name, tickets);
@@ -47,19 +48,26 @@ client.on("interactionCreate", async interaction => {
 
       if (interaction.isButton() && module.handleButton) {
         await module.handleButton(interaction, client);
+
+        if (interaction.replied || interaction.deferred) {
+          return;
+        }
       }
 
       if (interaction.isModalSubmit() && module.handleModal) {
         await module.handleModal(interaction, client);
+
+        if (interaction.replied || interaction.deferred) {
+          return;
+        }
       }
 
       if (module.handleInteraction) {
-  await module.handleInteraction(interaction, client);
+        await module.handleInteraction(interaction, client);
 
-  if (interaction.replied || interaction.deferred) {
-    return;
-  }
-}
+        if (interaction.replied || interaction.deferred) {
+          return;
+        }
       }
     }
   } catch (err) {
