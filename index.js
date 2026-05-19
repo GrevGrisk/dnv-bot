@@ -54,7 +54,12 @@ client.on("interactionCreate", async interaction => {
       }
 
       if (module.handleInteraction) {
-        await module.handleInteraction(interaction, client);
+  await module.handleInteraction(interaction, client);
+
+  if (interaction.replied || interaction.deferred) {
+    return;
+  }
+}
       }
     }
   } catch (err) {
