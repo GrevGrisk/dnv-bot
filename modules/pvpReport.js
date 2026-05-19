@@ -143,6 +143,23 @@ function getSession(interaction) {
   return sessions.get(interaction.user.id);
 }
 
+function parseCasualties(input) {
+  const parts = input
+    .replace(/,/g, "/")
+    .replace(/-/g, "/")
+    .split("/")
+    .map(part => Number(part.trim()));
+
+  if (parts.length !== 2 || Number.isNaN(parts[0]) || Number.isNaN(parts[1])) {
+    return null;
+  }
+
+  return {
+    enemy: parts[0],
+    dnv: parts[1],
+  };
+}
+
 function buildMemberMenu(session) {
   return new StringSelectMenuBuilder()
     .setCustomId("pvp_member")
@@ -520,22 +537,30 @@ async function handleInteraction(interaction) {
       ),
       new ActionRowBuilder().addComponents(
         new TextInputBuilder()
-          .setCustomId("enemy")
-          .setLabel("Enemy casualties / sinks")
+          .setCustomId("casualties")
+          .setLabel("Enemy / DNV casualties")
+          .setPlaceholder("Example: 93 / 5")
           .setStyle(TextInputStyle.Short)
           .setRequired(true)
       ),
       new ActionRowBuilder().addComponents(
         new TextInputBuilder()
-          .setCustomId("dnv")
-          .setLabel("DNV casualties / sinks")
-          .setStyle(TextInputStyle.Short)
-          .setRequired(true)
+          .setCustomId("positives")
+          .setLabel("Positives")
+          .setStyle(TextInputStyle.Paragraph)
+          .setRequired(false)
       ),
       new ActionRowBuilder().addComponents(
         new TextInputBuilder()
-          .setCustomId("notes")
-          .setLabel("Notes")
+          .setCustomId("negatives")
+          .setLabel("Negatives")
+          .setStyle(TextInputStyle.Paragraph)
+          .setRequired(false)
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId("improvements")
+          .setLabel("Improvement potential")
           .setStyle(TextInputStyle.Paragraph)
           .setRequired(false)
       )
@@ -554,13 +579,21 @@ async function handleInteraction(interaction) {
     await interaction.deferReply({ ephemeral: true });
 
     const date = interaction.fields.getTextInputValue("date");
-    const enemy = Number(interaction.fields.getTextInputValue("enemy"));
-    const dnv = Number(interaction.fields.getTextInputValue("dnv"));
-    const notes = interaction.fields.getTextInputValue("notes") || "None";
+    const casualtiesInput = interaction.fields.getTextInputValue("casualties");
+    const positives = interaction.fields.getTextInputValue("positives") || "None";
+    const negatives = interaction.fields.getTextInputValue("negatives") || "None";
+    const improvements = interaction.fields.getTextInputValue("improvements") || "None";
 
-    if (Number.isNaN(enemy) || Number.isNaN(dnv)) {
-      return interaction.editReply({ content: "Casualties må være tall." });
+    const parsedCasualties = parseCasualties(casualtiesInput);
+
+    if (!parsedCasualties) {
+      return interaction.editReply({
+        content: "Casualties må skrives slik: `93 / 5` hvor første tall er enemy casualties og andre tall er DNV casualties.",
+      });
     }
+
+    const enemy = parsedCasualties.enemy;
+    const dnv = parsedCasualties.dnv;
 
     const kd = dnv === 0 ? enemy.toFixed(2) : (enemy / dnv).toFixed(2);
 
@@ -580,7 +613,9 @@ async function handleInteraction(interaction) {
         { name: "Enemy casualties", value: String(enemy), inline: true },
         { name: "DNV casualties", value: String(dnv), inline: true },
         { name: "K/D ratio", value: kd, inline: true },
-        { name: "Notes", value: notes }
+        { name: "Positives", value: positives },
+        { name: "Negatives", value: negatives },
+        { name: "Improvement potential", value: improvements }
       )
       .setImage(buildChart(enemy, dnv))
       .setFooter({ text: `Created by ${interaction.user.tag}` })
