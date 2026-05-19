@@ -13,33 +13,64 @@ const {
 const fs = require("fs");
 const path = require("path");
 
-const dataPath = path.join(__dirname, "../data/friendly-enemy.json");
+// Lagrer direkte i /modules/friendly-enemy.json
+const dataPath = path.join(__dirname, "friendly-enemy.json");
 const imagePath = path.join(__dirname, "../assets/dnv.png");
 
 const adminRoleId = process.env.ADMIN_ROLE_ID;
 const announcementChannelId = process.env.ANNOUNCEMENT_CHANNEL_ID;
 
-function loadData() {
-  if (!fs.existsSync(path.dirname(dataPath))) {
-    fs.mkdirSync(path.dirname(dataPath), { recursive: true });
-  }
+console.log("[FE] Using data file:", dataPath);
 
-  if (!fs.existsSync(dataPath)) {
-    fs.writeFileSync(
-      dataPath,
-      JSON.stringify({ friendly: [], enemies: [] }, null, 2)
-    );
-  }
-
-  return JSON.parse(fs.readFileSync(dataPath, "utf8"));
+function defaultData() {
+  return { friendly: [], enemies: [] };
 }
 
-function saveData(data) {
-  fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
+function ensureDataFile() {
+  if (!fs.existsSync(dataPath)) {
+    fs.writeFileSync(dataPath, JSON.stringify(defaultData(), null, 2), "utf8");
+    console.log("[FE] Created new data file:", dataPath);
+  }
+}
+
+function normalizeData(data) {
+  return {
+    friendly: Array.isArray(data.friendly) ? data.friendly : [],
+    enemies: Array.isArray(data.enemies) ? data.enemies : []
+  };
 }
 
 function sortList(list) {
-  return list.sort((a, b) => a.localeCompare(b));
+  return [...new Set(list)]
+    .map(x => String(x).trim())
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function loadData() {
+  ensureDataFile();
+
+  try {
+    const raw = fs.readFileSync(dataPath, "utf8");
+    return normalizeData(JSON.parse(raw));
+  } catch (err) {
+    console.error("[FE] Failed to load JSON:", err);
+    return defaultData();
+  }
+}
+
+function saveData(data) {
+  const cleanData = normalizeData(data);
+
+  cleanData.friendly = sortList(cleanData.friendly);
+  cleanData.enemies = sortList(cleanData.enemies);
+
+  const tempPath = `${dataPath}.tmp`;
+
+  fs.writeFileSync(tempPath, JSON.stringify(cleanData, null, 2), "utf8");
+  fs.renameSync(tempPath, dataPath);
+
+  console.log("[FE] Saved data:", cleanData);
 }
 
 function createEmbed() {
@@ -115,13 +146,8 @@ function createModal(customId, title) {
 }
 
 function getImageFile() {
-  const files = [];
-
-  if (fs.existsSync(imagePath)) {
-    files.push(new AttachmentBuilder(imagePath, { name: "dnv.png" }));
-  }
-
-  return files;
+  if (!fs.existsSync(imagePath)) return [];
+  return [new AttachmentBuilder(imagePath, { name: "dnv.png" })];
 }
 
 function isAdmin(interaction) {
@@ -189,6 +215,10 @@ module.exports = {
     if (!interaction.customId.startsWith("fe_")) return;
 
     const data = loadData();
+
+    console.log("[FE] Button:", interaction.customId);
+    console.log("[FE] Data file:", dataPath);
+    console.log("[FE] Current data:", data);
 
     if (
       ["fe_add_friendly", "fe_add_enemy", "fe_remove"].includes(interaction.customId) &&
@@ -258,14 +288,18 @@ module.exports = {
     const data = loadData();
     const guildname = interaction.fields.getTextInputValue("guildname").trim();
 
+    if (!guildname) {
+      return interaction.reply({
+        content: "Guildnavn kan ikke være tomt.",
+        ephemeral: true
+      });
+    }
+
     if (interaction.customId === "fe_modal_add_friendly") {
       const wasNew = !data.friendly.includes(guildname);
 
       if (wasNew) data.friendly.push(guildname);
       data.enemies = data.enemies.filter(x => x !== guildname);
-
-      data.friendly = sortList(data.friendly);
-      data.enemies = sortList(data.enemies);
 
       saveData(data);
 
@@ -290,9 +324,6 @@ module.exports = {
       if (wasNew) data.enemies.push(guildname);
       data.friendly = data.friendly.filter(x => x !== guildname);
 
-      data.friendly = sortList(data.friendly);
-      data.enemies = sortList(data.enemies);
-
       saveData(data);
 
       if (wasNew) {
@@ -316,9 +347,6 @@ module.exports = {
 
       data.friendly = data.friendly.filter(x => x !== guildname);
       data.enemies = data.enemies.filter(x => x !== guildname);
-
-      data.friendly = sortList(data.friendly);
-      data.enemies = sortList(data.enemies);
 
       saveData(data);
 
