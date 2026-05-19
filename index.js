@@ -1,3 +1,5 @@
+// index.js
+
 require("dotenv").config();
 
 const { Client, Collection, GatewayIntentBits, Partials } = require("discord.js");
@@ -8,6 +10,8 @@ const tickets = require("./modules/tickets");
 const steamNews = require("./modules/steam_news");
 const pvpReport = require("./modules/pvpReport");
 const { rebuildPvpStats } = require("./modules/pvpStats");
+
+const PVP_FORUM_ID = "1506223555388506204";
 
 const client = new Client({
   intents: [
@@ -36,15 +40,20 @@ client.once("clientReady", async () => {
   await rebuildPvpStats(client);
 });
 
-client.on("threadCreate", async () => {
+client.on("threadCreate", async thread => {
+  if (thread.parentId !== PVP_FORUM_ID) return;
   await rebuildPvpStats(client);
 });
 
-client.on("messageDelete", async () => {
+client.on("messageDelete", async message => {
+  if (message.author?.bot) return;
+  if (message.channel?.parentId !== PVP_FORUM_ID) return;
   await rebuildPvpStats(client);
 });
 
-client.on("messageUpdate", async () => {
+client.on("messageUpdate", async (oldMessage, newMessage) => {
+  if (newMessage.author?.bot) return;
+  if (newMessage.channel?.parentId !== PVP_FORUM_ID) return;
   await rebuildPvpStats(client);
 });
 
