@@ -1,5 +1,3 @@
-// modules/pvpReport.js
-
 const {
   ActionRowBuilder,
   ButtonBuilder,
@@ -12,6 +10,7 @@ const {
   UserSelectMenuBuilder,
   AttachmentBuilder,
   ChannelType,
+  SlashCommandBuilder,
 } = require("discord.js");
 
 const { ChartJSNodeCanvas } = require("chartjs-node-canvas");
@@ -19,7 +18,6 @@ const { ChartJSNodeCanvas } = require("chartjs-node-canvas");
 const ADMIN_CHANNEL_ID = "1506223752969457664";
 const REPORT_FORUM_ID = "1506223555388506204";
 const ADMIN_ROLE_ID = "1499380210703794287";
-const DNV_ROLE_ID = "1499355512922443828";
 
 const sessions = new Map();
 
@@ -30,20 +28,17 @@ const SHIPS = [
   { label: "Balloon - Imperial Rate VI Montgolfiere", value: "Balloon - Imperial Rate VI Montgolfiere" },
   { label: "Polacca - Siege Rate VI Polacca", value: "Polacca - Siege Rate VI Polacca" },
   { label: "Mercury - Transport Rate VI Galleon", value: "Mercury - Transport Rate VI Galleon" },
-
   { label: "La Salamandre - Rate V", value: "La Salamandre - Rate V" },
   { label: "San Martin - Heavy Rate V Galleon", value: "San Martin - Heavy Rate V Galleon" },
   { label: "Black Prince - Imperial Rate V Galleon", value: "Black Prince - Imperial Rate V Galleon" },
   { label: "Le Requin - Siege Rate V Xebec", value: "Le Requin - Siege Rate V Xebec" },
   { label: "Russia - Transport Rate V Frigate", value: "Russia - Transport Rate V Frigate" },
-
   { label: "Blackwind - Rate IV", value: "Blackwind - Rate IV" },
   { label: "Constitution - Heavy Rate IV Frigate", value: "Constitution - Heavy Rate IV Frigate" },
   { label: "Devourer - Imperial Rate IV Barque", value: "Devourer - Imperial Rate IV Barque" },
   { label: "Falmouth - Transport Rate IV Ship", value: "Falmouth - Transport Rate IV Ship" },
   { label: "Flying Cloud - Transport Rate IV Clipper", value: "Flying Cloud - Transport Rate IV Clipper" },
   { label: "Friedrich Wilhelm - Transport Rate IV Frigate", value: "Friedrich Wilhelm - Transport Rate IV Frigate" },
-
   { label: "Ancient - Rate III", value: "Ancient - Rate III" },
   { label: "Azov - Heavy Rate III Ship of the Line", value: "Azov - Heavy Rate III Ship of the Line" },
   { label: "Bellona - Heavy Rate III Ship of the Line", value: "Bellona - Heavy Rate III Ship of the Line" },
@@ -51,14 +46,12 @@ const SHIPS = [
   { label: "Kobukson - Siege Rate III Phanokson", value: "Kobukson - Siege Rate III Phanokson" },
   { label: "Morduant - Transport Rate III Ship of the Line", value: "Morduant - Transport Rate III Ship of the Line" },
   { label: "Prins Willem - Transport Rate III Galleon", value: "Prins Willem - Transport Rate III Galleon" },
-
   { label: "Redoutable - Heavy Rate II Ship of the Line", value: "Redoutable - Heavy Rate II Ship of the Line" },
   { label: "St. Pavel - Heavy Rate II Ship of the Line", value: "St. Pavel - Heavy Rate II Ship of the Line" },
   { label: "Vasa - Heavy Rate II Ship of the Line", value: "Vasa - Heavy Rate II Ship of the Line" },
   { label: "Octopus - Imperial Rate II Ship", value: "Octopus - Imperial Rate II Ship" },
   { label: "Adventure - Siege Rate II Galley", value: "Adventure - Siege Rate II Galley" },
   { label: "La Sirene - Transport Rate II Ship", value: "La Sirene - Transport Rate II Ship" },
-
   { label: "Victory - Rate I", value: "Victory - Rate I" },
   { label: "12 Apostolov - Heavy Rate I Ship of the Line", value: "12 Apostolov - Heavy Rate I Ship of the Line" },
   { label: "Santisima Trinidad - Heavy Rate I Ship of the Line", value: "Santisima Trinidad - Heavy Rate I Ship of the Line" },
@@ -66,6 +59,10 @@ const SHIPS = [
   { label: "La Royale - Siege Rate I Galley", value: "La Royale - Siege Rate I Galley" },
   { label: "La Couronne - Transport Rate I Galleon", value: "La Couronne - Transport Rate I Galleon" },
 ];
+
+function isAdmin(member) {
+  return member.roles.cache.has(ADMIN_ROLE_ID);
+}
 
 async function makePieChart(enemy, dnv) {
   const canvas = new ChartJSNodeCanvas({ width: 700, height: 450 });
@@ -76,21 +73,9 @@ async function makePieChart(enemy, dnv) {
       labels: ["Enemy casualties", "DNV casualties"],
       datasets: [{ data: [enemy, dnv] }],
     },
-    options: {
-      plugins: {
-        title: {
-          display: true,
-          text: "PvP casualties",
-        },
-      },
-    },
   });
 
   return new AttachmentBuilder(buffer, { name: "pvp-piechart.png" });
-}
-
-function isAdmin(member) {
-  return member.roles.cache.has(ADMIN_ROLE_ID);
 }
 
 async function postAdminPanel(client) {
@@ -119,10 +104,7 @@ async function handleInteraction(interaction) {
       return interaction.reply({ content: "Du har ikke tilgang.", ephemeral: true });
     }
 
-    sessions.set(interaction.user.id, {
-      participants: [],
-      ships: [],
-    });
+    sessions.set(interaction.user.id, { participants: [], ships: [] });
 
     const users = new UserSelectMenuBuilder()
       .setCustomId("pvp_participants")
@@ -130,9 +112,9 @@ async function handleInteraction(interaction) {
       .setMinValues(1)
       .setMaxValues(25);
 
-    const ships = new StringSelectMenuBuilder()
-      .setCustomId("pvp_ships")
-      .setPlaceholder("Velg skip som ble brukt")
+    const ships1 = new StringSelectMenuBuilder()
+      .setCustomId("pvp_ships_1")
+      .setPlaceholder("Velg skip")
       .setMinValues(1)
       .setMaxValues(10)
       .addOptions(SHIPS.slice(0, 25));
@@ -142,7 +124,7 @@ async function handleInteraction(interaction) {
       .setPlaceholder("Flere skip, valgfritt")
       .setMinValues(0)
       .setMaxValues(10)
-      .addOptions(SHIPS.slice(25, 50));
+      .addOptions(SHIPS.slice(25));
 
     const next = new ButtonBuilder()
       .setCustomId("pvp_open_modal")
@@ -153,7 +135,7 @@ async function handleInteraction(interaction) {
       content: "Velg deltakere og skip. Trykk deretter Neste.",
       components: [
         new ActionRowBuilder().addComponents(users),
-        new ActionRowBuilder().addComponents(ships),
+        new ActionRowBuilder().addComponents(ships1),
         new ActionRowBuilder().addComponents(ships2),
         new ActionRowBuilder().addComponents(next),
       ],
@@ -161,10 +143,7 @@ async function handleInteraction(interaction) {
     });
   }
 
-  if (
-    interaction.isUserSelectMenu() &&
-    interaction.customId === "pvp_participants"
-  ) {
+  if (interaction.isUserSelectMenu() && interaction.customId === "pvp_participants") {
     const session = sessions.get(interaction.user.id) || {};
     session.participants = interaction.values;
     sessions.set(interaction.user.id, session);
@@ -174,13 +153,10 @@ async function handleInteraction(interaction) {
 
   if (
     interaction.isStringSelectMenu() &&
-    ["pvp_ships", "pvp_ships_2"].includes(interaction.customId)
+    ["pvp_ships_1", "pvp_ships_2"].includes(interaction.customId)
   ) {
     const session = sessions.get(interaction.user.id) || { ships: [] };
-
-    const oldShips = session.ships || [];
-    session.ships = [...new Set([...oldShips, ...interaction.values])];
-
+    session.ships = [...new Set([...(session.ships || []), ...interaction.values])];
     sessions.set(interaction.user.id, session);
 
     return interaction.reply({ content: "Skip lagret.", ephemeral: true });
@@ -191,38 +167,35 @@ async function handleInteraction(interaction) {
       .setCustomId("pvp_submit")
       .setTitle("PvP Report");
 
-    const date = new TextInputBuilder()
-      .setCustomId("date")
-      .setLabel("Date of PvP event")
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder("19.05.2026")
-      .setRequired(true);
-
-    const enemy = new TextInputBuilder()
-      .setCustomId("enemy")
-      .setLabel("Enemy casualties / sinks")
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder("0")
-      .setRequired(true);
-
-    const dnv = new TextInputBuilder()
-      .setCustomId("dnv")
-      .setLabel("DNV casualties / sinks")
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder("0")
-      .setRequired(true);
-
-    const notes = new TextInputBuilder()
-      .setCustomId("notes")
-      .setLabel("Notes")
-      .setStyle(TextInputStyle.Paragraph)
-      .setRequired(false);
-
     modal.addComponents(
-      new ActionRowBuilder().addComponents(date),
-      new ActionRowBuilder().addComponents(enemy),
-      new ActionRowBuilder().addComponents(dnv),
-      new ActionRowBuilder().addComponents(notes)
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId("date")
+          .setLabel("Date of PvP event")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId("enemy")
+          .setLabel("Enemy casualties / sinks")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId("dnv")
+          .setLabel("DNV casualties / sinks")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setCustomId("notes")
+          .setLabel("Notes")
+          .setStyle(TextInputStyle.Paragraph)
+          .setRequired(false)
+      )
     );
 
     return interaction.showModal(modal);
@@ -232,10 +205,7 @@ async function handleInteraction(interaction) {
     const session = sessions.get(interaction.user.id);
 
     if (!session) {
-      return interaction.reply({
-        content: "Rapport-data mangler. Start på nytt.",
-        ephemeral: true,
-      });
+      return interaction.reply({ content: "Rapport-data mangler.", ephemeral: true });
     }
 
     const date = interaction.fields.getTextInputValue("date");
@@ -244,21 +214,16 @@ async function handleInteraction(interaction) {
     const notes = interaction.fields.getTextInputValue("notes") || "None";
 
     if (Number.isNaN(enemy) || Number.isNaN(dnv)) {
-      return interaction.reply({
-        content: "Enemy casualties og DNV casualties må være tall.",
-        ephemeral: true,
-      });
+      return interaction.reply({ content: "Casualties må være tall.", ephemeral: true });
     }
 
     const kd = dnv === 0 ? enemy.toFixed(2) : (enemy / dnv).toFixed(2);
 
     const participants = session.participants.length
-      ? session.participants.map((id) => `<@${id}>`).join(", ")
+      ? session.participants.map(id => `<@${id}>`).join(", ")
       : "None";
 
-    const ships = session.ships.length
-      ? session.ships.join("\n")
-      : "None";
+    const ships = session.ships.length ? session.ships.join("\n") : "None";
 
     const chart = await makePieChart(enemy, dnv);
 
@@ -281,10 +246,7 @@ async function handleInteraction(interaction) {
     const forum = await interaction.client.channels.fetch(REPORT_FORUM_ID);
 
     if (!forum || forum.type !== ChannelType.GuildForum) {
-      return interaction.reply({
-        content: "Forumkanalen ble ikke funnet.",
-        ephemeral: true,
-      });
+      return interaction.reply({ content: "Forumkanalen ble ikke funnet.", ephemeral: true });
     }
 
     await forum.threads.create({
@@ -297,14 +259,37 @@ async function handleInteraction(interaction) {
 
     sessions.delete(interaction.user.id);
 
-    return interaction.reply({
-      content: "PvP-rapport postet.",
-      ephemeral: true,
-    });
+    return interaction.reply({ content: "PvP-rapport postet.", ephemeral: true });
   }
 }
 
 module.exports = {
+  name: "pvppanel",
+
+  data: new SlashCommandBuilder()
+    .setName("pvppanel")
+    .setDescription("Post PvP report panel"),
+
+  hasCommand(commandName) {
+    return commandName === "pvppanel";
+  },
+
+  async execute(interaction, client) {
+    if (!isAdmin(interaction.member)) {
+      return interaction.reply({
+        content: "Du har ikke tilgang.",
+        ephemeral: true,
+      });
+    }
+
+    await postAdminPanel(client);
+
+    return interaction.reply({
+      content: "PvP panel postet.",
+      ephemeral: true,
+    });
+  },
+
   postAdminPanel,
   handleInteraction,
 };
