@@ -7,7 +7,6 @@ const {
   TextInputBuilder,
   TextInputStyle,
   StringSelectMenuBuilder,
-  UserSelectMenuBuilder,
   AttachmentBuilder,
   ChannelType,
   SlashCommandBuilder,
@@ -18,50 +17,136 @@ const { ChartJSNodeCanvas } = require("chartjs-node-canvas");
 const ADMIN_CHANNEL_ID = "1506223752969457664";
 const REPORT_FORUM_ID = "1506223555388506204";
 const ADMIN_ROLE_ID = "1499380210703794287";
+const DNV_ROLE_ID = "1499355512922443828";
 
 const sessions = new Map();
 
-const SHIPS = [
-  { label: "Pickle - Rate VII", value: "Pickle - Rate VII" },
-  { label: "Horizont - Rate VI", value: "Horizont - Rate VI" },
-  { label: "Phoenix - Heavy Rate VI Brig", value: "Phoenix - Heavy Rate VI Brig" },
-  { label: "Balloon - Imperial Rate VI Montgolfiere", value: "Balloon - Imperial Rate VI Montgolfiere" },
-  { label: "Polacca - Siege Rate VI Polacca", value: "Polacca - Siege Rate VI Polacca" },
-  { label: "Mercury - Transport Rate VI Galleon", value: "Mercury - Transport Rate VI Galleon" },
-  { label: "La Salamandre - Rate V", value: "La Salamandre - Rate V" },
-  { label: "San Martin - Heavy Rate V Galleon", value: "San Martin - Heavy Rate V Galleon" },
-  { label: "Black Prince - Imperial Rate V Galleon", value: "Black Prince - Imperial Rate V Galleon" },
-  { label: "Le Requin - Siege Rate V Xebec", value: "Le Requin - Siege Rate V Xebec" },
-  { label: "Russia - Transport Rate V Frigate", value: "Russia - Transport Rate V Frigate" },
-  { label: "Blackwind - Rate IV", value: "Blackwind - Rate IV" },
-  { label: "Constitution - Heavy Rate IV Frigate", value: "Constitution - Heavy Rate IV Frigate" },
-  { label: "Devourer - Imperial Rate IV Barque", value: "Devourer - Imperial Rate IV Barque" },
-  { label: "Falmouth - Transport Rate IV Ship", value: "Falmouth - Transport Rate IV Ship" },
-  { label: "Flying Cloud - Transport Rate IV Clipper", value: "Flying Cloud - Transport Rate IV Clipper" },
-  { label: "Friedrich Wilhelm - Transport Rate IV Frigate", value: "Friedrich Wilhelm - Transport Rate IV Frigate" },
-  { label: "Ancient - Rate III", value: "Ancient - Rate III" },
-  { label: "Azov - Heavy Rate III Ship of the Line", value: "Azov - Heavy Rate III Ship of the Line" },
-  { label: "Bellona - Heavy Rate III Ship of the Line", value: "Bellona - Heavy Rate III Ship of the Line" },
-  { label: "Deadfish - Imperial Rate III Ship", value: "Deadfish - Imperial Rate III Ship" },
-  { label: "Kobukson - Siege Rate III Phanokson", value: "Kobukson - Siege Rate III Phanokson" },
-  { label: "Morduant - Transport Rate III Ship of the Line", value: "Morduant - Transport Rate III Ship of the Line" },
-  { label: "Prins Willem - Transport Rate III Galleon", value: "Prins Willem - Transport Rate III Galleon" },
-  { label: "Redoutable - Heavy Rate II Ship of the Line", value: "Redoutable - Heavy Rate II Ship of the Line" },
-  { label: "St. Pavel - Heavy Rate II Ship of the Line", value: "St. Pavel - Heavy Rate II Ship of the Line" },
-  { label: "Vasa - Heavy Rate II Ship of the Line", value: "Vasa - Heavy Rate II Ship of the Line" },
-  { label: "Octopus - Imperial Rate II Ship", value: "Octopus - Imperial Rate II Ship" },
-  { label: "Adventure - Siege Rate II Galley", value: "Adventure - Siege Rate II Galley" },
-  { label: "La Sirene - Transport Rate II Ship", value: "La Sirene - Transport Rate II Ship" },
-  { label: "Victory - Rate I", value: "Victory - Rate I" },
-  { label: "12 Apostolov - Heavy Rate I Ship of the Line", value: "12 Apostolov - Heavy Rate I Ship of the Line" },
-  { label: "Santisima Trinidad - Heavy Rate I Ship of the Line", value: "Santisima Trinidad - Heavy Rate I Ship of the Line" },
-  { label: "Huracan - Imperial Rate I Ship of the Line", value: "Huracan - Imperial Rate I Ship of the Line" },
-  { label: "La Royale - Siege Rate I Galley", value: "La Royale - Siege Rate I Galley" },
-  { label: "La Couronne - Transport Rate I Galleon", value: "La Couronne - Transport Rate I Galleon" },
-];
+const SHIP_CATEGORIES = {
+  rate7: {
+    label: "Rate VII",
+    ships: [
+      "Pickle - Rate VII",
+      "Friede - Transport Rate VII Flute",
+    ],
+  },
+  rate6: {
+    label: "Rate VI",
+    ships: [
+      "Horizont - Rate VI",
+      "Phoenix - Heavy Rate VI Brig",
+      "Balloon - Imperial Rate VI Montgolfiere",
+      "Polacca - Siege Rate VI Polacca",
+      "Mercury - Transport Rate VI Galleon",
+    ],
+  },
+  rate5: {
+    label: "Rate V",
+    ships: [
+      "La Salamandre - Rate V",
+      "San Martin - Heavy Rate V Galleon",
+      "Black Prince - Imperial Rate V Galleon",
+      "Le Requin - Siege Rate V Xebec",
+      "Russia - Transport Rate V Frigate",
+    ],
+  },
+  rate4: {
+    label: "Rate IV",
+    ships: [
+      "Blackwind - Rate IV",
+      "Constitution - Heavy Rate IV Frigate",
+      "Devourer - Imperial Rate IV Barque",
+      "Falmouth - Transport Rate IV Ship",
+      "Flying Cloud - Transport Rate IV Clipper",
+      "Friedrich Wilhelm - Transport Rate IV Frigate",
+    ],
+  },
+  rate3: {
+    label: "Rate III",
+    ships: [
+      "Ancient - Rate III",
+      "Azov - Heavy Rate III Ship of the Line",
+      "Bellona - Heavy Rate III Ship of the Line",
+      "Deadfish - Imperial Rate III Ship",
+      "Kobukson - Siege Rate III Phanokson",
+      "Morduant - Transport Rate III Ship of the Line",
+      "Prins Willem - Transport Rate III Galleon",
+    ],
+  },
+  rate2: {
+    label: "Rate II",
+    ships: [
+      "Redoutable - Heavy Rate II Ship of the Line",
+      "St. Pavel - Heavy Rate II Ship of the Line",
+      "Vasa - Heavy Rate II Ship of the Line",
+      "Octopus - Imperial Rate II Ship",
+      "Adventure - Siege Rate II Galley",
+      "La Sirene - Transport Rate II Ship",
+    ],
+  },
+  rate1: {
+    label: "Rate I",
+    ships: [
+      "Victory - Rate I",
+      "12 Apostolov - Heavy Rate I Ship of the Line",
+      "Santisima Trinidad - Heavy Rate I Ship of the Line",
+      "Huracan - Imperial Rate I Ship of the Line",
+      "La Royale - Siege Rate I Galley",
+      "La Couronne - Transport Rate I Galleon",
+    ],
+  },
+};
 
 function isAdmin(member) {
   return member.roles.cache.has(ADMIN_ROLE_ID);
+}
+
+function buildCategoryMenu() {
+  return new StringSelectMenuBuilder()
+    .setCustomId("pvp_ship_category")
+    .setPlaceholder("Velg rate/kategori")
+    .addOptions(
+      Object.entries(SHIP_CATEGORIES).map(([value, category]) => ({
+        label: category.label,
+        value,
+      }))
+    );
+}
+
+function buildShipMenu(categoryKey) {
+  const category = SHIP_CATEGORIES[categoryKey];
+
+  return new StringSelectMenuBuilder()
+    .setCustomId("pvp_ships")
+    .setPlaceholder(`Velg skip fra ${category.label}`)
+    .setMinValues(1)
+    .setMaxValues(category.ships.length)
+    .addOptions(
+      category.ships.map(ship => ({
+        label: ship,
+        value: ship,
+      }))
+    );
+}
+
+async function buildDnvMemberMenu(guild) {
+  await guild.members.fetch();
+
+  const role = guild.roles.cache.get(DNV_ROLE_ID);
+  const members = role.members
+    .filter(member => !member.user.bot)
+    .sort((a, b) => a.displayName.localeCompare(b.displayName))
+    .map(member => ({
+      label: member.displayName.slice(0, 100),
+      value: member.id,
+    }))
+    .slice(0, 25);
+
+  return new StringSelectMenuBuilder()
+    .setCustomId("pvp_participants")
+    .setPlaceholder("Velg DNV-deltakere")
+    .setMinValues(1)
+    .setMaxValues(Math.max(1, members.length))
+    .addOptions(members);
 }
 
 async function makePieChart(enemy, dnv) {
@@ -71,7 +156,26 @@ async function makePieChart(enemy, dnv) {
     type: "pie",
     data: {
       labels: ["Enemy casualties", "DNV casualties"],
-      datasets: [{ data: [enemy, dnv] }],
+      datasets: [
+        {
+          data: [enemy, dnv],
+          backgroundColor: ["#3498db", "#ff5c8a"],
+        },
+      ],
+    },
+    options: {
+      plugins: {
+        legend: {
+          labels: {
+            color: "#ffffff",
+          },
+        },
+        title: {
+          display: true,
+          text: "PvP casualties",
+          color: "#ffffff",
+        },
+      },
     },
   });
 
@@ -80,10 +184,12 @@ async function makePieChart(enemy, dnv) {
 
 async function postAdminPanel(client) {
   const channel = await client.channels.fetch(ADMIN_CHANNEL_ID);
+  const logo = new AttachmentBuilder("./assets/dnv.png", { name: "dnv.png" });
 
   const embed = new EmbedBuilder()
     .setTitle("PvP Report Panel")
     .setDescription("Trykk på knappen for å lage en ny PvP-rapport.")
+    .setThumbnail("attachment://dnv.png")
     .setColor(0xb30000);
 
   const row = new ActionRowBuilder().addComponents(
@@ -93,7 +199,11 @@ async function postAdminPanel(client) {
       .setStyle(ButtonStyle.Danger)
   );
 
-  await channel.send({ embeds: [embed], components: [row] });
+  await channel.send({
+    embeds: [embed],
+    components: [row],
+    files: [logo],
+  });
 }
 
 async function handleInteraction(interaction) {
@@ -104,27 +214,14 @@ async function handleInteraction(interaction) {
       return interaction.reply({ content: "Du har ikke tilgang.", ephemeral: true });
     }
 
-    sessions.set(interaction.user.id, { participants: [], ships: [] });
+    sessions.set(interaction.user.id, {
+      participants: [],
+      ships: [],
+      selectedCategory: null,
+    });
 
-    const users = new UserSelectMenuBuilder()
-      .setCustomId("pvp_participants")
-      .setPlaceholder("Velg DNV-deltakere")
-      .setMinValues(1)
-      .setMaxValues(25);
-
-    const ships1 = new StringSelectMenuBuilder()
-      .setCustomId("pvp_ships_1")
-      .setPlaceholder("Velg skip")
-      .setMinValues(1)
-      .setMaxValues(10)
-      .addOptions(SHIPS.slice(0, 25));
-
-    const ships2 = new StringSelectMenuBuilder()
-      .setCustomId("pvp_ships_2")
-      .setPlaceholder("Flere skip, valgfritt")
-      .setMinValues(0)
-      .setMaxValues(10)
-      .addOptions(SHIPS.slice(25));
+    const participantsMenu = await buildDnvMemberMenu(interaction.guild);
+    const categoryMenu = buildCategoryMenu();
 
     const next = new ButtonBuilder()
       .setCustomId("pvp_open_modal")
@@ -132,18 +229,17 @@ async function handleInteraction(interaction) {
       .setStyle(ButtonStyle.Success);
 
     return interaction.reply({
-      content: "Velg deltakere og skip. Trykk deretter Neste.",
+      content: "Velg DNV-deltakere og rate/kategori for skip.",
       components: [
-        new ActionRowBuilder().addComponents(users),
-        new ActionRowBuilder().addComponents(ships1),
-        new ActionRowBuilder().addComponents(ships2),
+        new ActionRowBuilder().addComponents(participantsMenu),
+        new ActionRowBuilder().addComponents(categoryMenu),
         new ActionRowBuilder().addComponents(next),
       ],
       ephemeral: true,
     });
   }
 
-  if (interaction.isUserSelectMenu() && interaction.customId === "pvp_participants") {
+  if (interaction.isStringSelectMenu() && interaction.customId === "pvp_participants") {
     const session = sessions.get(interaction.user.id) || {};
     session.participants = interaction.values;
     sessions.set(interaction.user.id, session);
@@ -151,15 +247,40 @@ async function handleInteraction(interaction) {
     return interaction.reply({ content: "Deltakere lagret.", ephemeral: true });
   }
 
-  if (
-    interaction.isStringSelectMenu() &&
-    ["pvp_ships_1", "pvp_ships_2"].includes(interaction.customId)
-  ) {
-    const session = sessions.get(interaction.user.id) || { ships: [] };
+  if (interaction.isStringSelectMenu() && interaction.customId === "pvp_ship_category") {
+    const session = sessions.get(interaction.user.id) || { participants: [], ships: [] };
+    session.selectedCategory = interaction.values[0];
+    sessions.set(interaction.user.id, session);
+
+    const participantsMenu = await buildDnvMemberMenu(interaction.guild);
+    const categoryMenu = buildCategoryMenu();
+    const shipMenu = buildShipMenu(session.selectedCategory);
+
+    const next = new ButtonBuilder()
+      .setCustomId("pvp_open_modal")
+      .setLabel("Neste")
+      .setStyle(ButtonStyle.Success);
+
+    return interaction.update({
+      content: `Velg skip fra ${SHIP_CATEGORIES[session.selectedCategory].label}. Valgte skip lagres når du velger dem.`,
+      components: [
+        new ActionRowBuilder().addComponents(participantsMenu),
+        new ActionRowBuilder().addComponents(categoryMenu),
+        new ActionRowBuilder().addComponents(shipMenu),
+        new ActionRowBuilder().addComponents(next),
+      ],
+    });
+  }
+
+  if (interaction.isStringSelectMenu() && interaction.customId === "pvp_ships") {
+    const session = sessions.get(interaction.user.id) || { participants: [], ships: [] };
     session.ships = [...new Set([...(session.ships || []), ...interaction.values])];
     sessions.set(interaction.user.id, session);
 
-    return interaction.reply({ content: "Skip lagret.", ephemeral: true });
+    return interaction.reply({
+      content: `Skip lagret:\n${session.ships.join("\n")}`,
+      ephemeral: true,
+    });
   }
 
   if (interaction.isButton() && interaction.customId === "pvp_open_modal") {
@@ -292,4 +413,4 @@ module.exports = {
 
   postAdminPanel,
   handleInteraction,
-}; 
+};
