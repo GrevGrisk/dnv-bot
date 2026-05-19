@@ -1,4 +1,132 @@
+Pasted text(3).txt
+Document
+Jeg har dette skriptet kjørende i en bot, etter en restart ser den ut til å ha glemt oppdateringene jeg la inn av friendly og enemys 
+
+den husker åpenbart noe... men ikke det siste
+
+jeg har ingen andre json filer som lagrer det
+
+Da er det mest sannsynlig Discord som viser en gammel melding/panel, ikke fersk data.
+
+Knappene kan fortsatt virke på en gammel bot-melding, men listene bør lese ny JSON når du trykker. For å sjekke:
+
+Legg dette inn i handleButton rett etter:
+
+const data = loadData();
+
+console.log("BUTTON:", interaction.customId);
+console.log("DATA PATH:", dataPath);
+console.log("DATA READ:", data);
+
+Trykk List friendly igjen og se terminalen.
+
+Hvis terminalen viser tom data, men Discord viser gamle lister, kjører du en annen bot-instans/prosess.
+
+Sjekk da:
+
+pm2 list
+
+og restart riktig prosess:
+
+pm2 restart all
+
+Eventuelt stopp duplikater:
+
+pm2 stop all
+pm2 start index.js --name dnv-bot
+
+
+vi kan legge dem inn igjen med din hjelp, men vi må få fikset det slik at det funker og ikke forsvinner for fremtiden. lag et oppdatert komplett skript som vil virke
+
+json filen den skal lagre i ligger under /modules og heter friendly-enemy.json
+
+Da er problemet her:
+
+const dataPath = path.join(__dirname, "../data/friendly-enemy.json");
+
+Skriptet lagrer til /data/, men du vil bruke /modules/friendly-enemy.json.
+
+Bytt den linja til:
+
+const dataPath = path.join(__dirname, "friendly-enemy.json");
+
+Siden skriptet allerede ligger i /modules, vil den da lagre direkte til:
+
+/modules/friendly-enemy.json
+
+Legg også inn dette for å bekrefte:
+
+console.log("[FE] Using data file:", dataPath);
+
+Restart boten etterpå.
+
+komplett oppdatert skript
+
+Jeg venter til du skriver ferdig.
+
+Friendly guild added
+Guild NSE has been added to the friendly list.
+01/05/2026 00:18
+DNV-Bot
+APP
+ — 14/05/2026 15:23
+Friendly guild added
+Guild CeO has been added to the friendly list.
+14/05/2026 15:23
+Friendly guild added
+Guild ceo has been added to the friendly list.
+14/05/2026 15:23
+Friendly guild added
+Guild CEo has been added to the friendly list.
+14/05/2026 15:23
+Friendly guild added
+Guild CEO has been added to the friendly list.
+14/05/2026 15:23
+Friendly guild added
+Guild cEo has been added to the friendly list.
+14/05/2026 15:24
+DNV-Bot
+APP
+ — 15/05/2026 01:01
+Friendly guild added
+Guild GWA has been added to the friendly list.
+15/05/2026 01:01
+
+Jeg venter fortsatt til du skriver ferdig.
+
+legg inn alle disse i json filen, og send meg komplett oppdater json
+
 {
-  "friendly": [],
-  "enemies": []
+  "friendly": [
+    "CeO",
+    "ceo",
+    "CEo",
+    "CEO",
+    "cEo",
+    "DNO",
+    "GWA",
+    "LRO",
+    "NSE"
+  ],
+  "enemies": [
+    "☠️HH",
+    "BIG",
+    "BRP",
+    "DPS",
+    "F@P",
+    "GTÁ",
+    "M@D",
+    "OBS",
+    "PVP",
+    "ReD",
+    "RED",
+    "SiN",
+    "SIN",
+    "SOS",
+    "TfD",
+    "WLS",
+    "XxX"
+  ]
 }
+
+
