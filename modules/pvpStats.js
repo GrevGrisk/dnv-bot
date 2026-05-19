@@ -12,6 +12,9 @@ const chartCanvas = new ChartJSNodeCanvas({
   backgroundColour: "#111318"
 });
 
+let isUpdating = false;
+let statsMessageId = null;
+
 function getField(embed, names) {
   const field = embed.fields?.find(f =>
     names.some(name =>
@@ -58,30 +61,18 @@ async function createStatsChart(enemyDeaths, dnvDeaths) {
       },
       scales: {
         x: {
-          ticks: {
-            display: false
-          },
-          grid: {
-            display: false
-          },
-          border: {
-            color: "#e5e7eb"
-          }
+          ticks: { display: false },
+          grid: { display: false },
+          border: { color: "#e5e7eb" }
         },
         y: {
           beginAtZero: true,
           ticks: {
             color: "#e5e7eb",
-            font: {
-              size: 18
-            }
+            font: { size: 18 }
           },
-          grid: {
-            color: "#2f333b"
-          },
-          border: {
-            color: "#e5e7eb"
-          }
+          grid: { color: "#2f333b" },
+          border: { color: "#e5e7eb" }
         }
       }
     }
@@ -90,97 +81,139 @@ async function createStatsChart(enemyDeaths, dnvDeaths) {
   return await chartCanvas.renderToBuffer(configuration);
 }
 
-async function rebuildPvpStats(client) {
-  const forum = await client.channels.fetch(REPORT_FORUM_ID);
-  const statsChannel = await client.channels.fetch(STATS_CHANNEL_ID);
-
-  let totalReports = 0;
-  let enemyDeaths = 0;
-  let dnvDeaths = 0;
-
-  const active = await forum.threads.fetchActive();
-
-  for (const [, thread] of active.threads) {
-    try {
-      const messages = await thread.messages.fetch({ limit: 1 });
-      const msg = messages.last() || messages.first();
-
-      if (!msg?.embeds?.length) continue;
-
-      const embed = msg.embeds[0];
-
-      enemyDeaths += getField(embed, [
-        "dnv kills",
-        "enemy casualties",
-        "enemy deaths",
-        "kills"
-      ]);
-
-      dnvDeaths += getField(embed, [
-        "dnv casualties",
-        "dnv deaths",
-        "deaths"
-      ]);
-
-      totalReports++;
-    } catch (err) {
-      console.error(`Failed reading thread ${thread.id}`, err);
-    }
+async function findExistingStatsMessage(statsChannel) {
+  if (statsMessageId) {
+    const existing = await statsChannel.messages.fetch(statsMessageId).catch(() => null);
+    if (existing) return existing;
   }
 
-  const kd =
-    dnvDeaths > 0
-      ? (enemyDeaths / dnvDeaths).toFixed(2)
-      : enemyDeaths.toFixed(2);
+  const messages = await statsChannel.messages.fetch({ limit: 20 });
 
-  const chartBuffer = await createStatsChart(enemyDeaths, dnvDeaths);
+  const existing = messages.find(msg =>
+    msg.author.bot &&
+    msg.embeds.length &&
+    msg.embeds[0].title === "⚔️ DNV PvP Statistics"
+  );
 
-  const attachment = new AttachmentBuilder(chartBuffer, {
-    name: "pvp-stats.png"
-  });
+  if (existing) {
+    statsMessageId = existing.id;
+    return existing;
+  }
 
-  const statsEmbed = new EmbedBuilder()
-    .setTitle("⚔️ DNV PvP Statistics")
-    .setColor("#b30000")
-    .setDescription(
-      [
-        "📊 **Live combat statistics based on active PvP reports**",
-        "",
-        `🟩 **Enemy Deaths:** \`${enemyDeaths}\``,
-        `⬛ **DNV Deaths:** \`${dnvDeaths}\``,
-        `💀 **Total K/D Ratio:** \`${kd}\``,
-        `📁 **PvP Reports Counted:** \`${totalReports}\``,
-        "",
-        "━━━━━━━━━━━━━━━━━━━━"
-      ].join("\n")
-    )
-    .addFields(
-      {
-        name: "🟩 Enemy Deaths",
-        value: `**${enemyDeaths}**`,
-        inline: true
-      },
-      {
-        name: "⬛ DNV Deaths",
-        value: `**${dnvDeaths}**`,
-        inline: true
-      },
-      {
-        name: "💀 K/D Ratio",
-        value: `**${kd}**`,
-        inline: true
+  return null;
+}
+
+async function rebuildPvpStats(client) {
+  if (isUpdating) return;
+  isUpdating = true;
+
+  try {
+    const forum = await client.channels.fetch(REPORT_FORUM_ID);
+    const statsChannel = await client.channels.fetch(STATS_CHANNEL_ID);
+
+    let totalReports = 0;
+    let enemyDeaths = 0;
+    let dnvDeaths = 0;
+
+    const active = await forum.threads.fetchActive();
+
+    for (const [, thread] of active.threads) {
+      try {
+        const messages = await thread.messages.fetch({ limit: 1 });
+        const msg = messages.last() || messages.first();
+
+        if (!msg?.embeds?.length) continue;
+
+        const embed = msg.embeds[0];
+
+        enemyDeaths += getField(embed, [
+          "dnv kills",
+          "enemy casualties",
+          "enemy deaths",
+          "kills"
+        ]);
+
+        dnvDeaths += getField(embed, [
+          "dnv casualties",
+          "dnv deaths",
+          "deaths"
+        ]);
+
+        totalReports++;
+      } catch (err) {
+        console.error(`Failed reading thread ${thread.id}`, err);
       }
-    )
-    .setImage("attachment://pvp-stats.png")
-    .setFooter({
-      text: "DNV Combat Analytics • Auto-updated"
-    })
-    .setTimestamp();
+    }
 
-  await statsChannel.send({
-    embeds: [statsEmbed],
-    files: [attachment]
-  });
+    const kd =
+      dnvDeaths > 0
+        ? (enemyDeaths / dnvDeaths).toFixed(2)
+        : enemyDeaths.toFixed(2);
+
+    const chartBuffer = await createStatsChart(enemyDeaths, dnvDeaths);
+
+    const attachment = new AttachmentBuilder(chartBuffer, {
+      name: "pvp-stats.png"
+    });
+
+    const statsEmbed = new EmbedBuilder()
+      .setTitle("⚔️ DNV PvP Statistics")
+      .setColor("#b30000")
+      .setDescription(
+        [
+          "📊 **Live combat statistics based on active PvP reports**",
+          "",
+          `🟩 **Enemy Deaths:** \`${enemyDeaths}\``,
+          `⬛ **DNV Deaths:** \`${dnvDeaths}\``,
+          `💀 **Total K/D Ratio:** \`${kd}\``,
+          `📁 **PvP Reports Counted:** \`${totalReports}\``,
+          "",
+          "━━━━━━━━━━━━━━━━━━━━"
+        ].join("\n")
+      )
+      .addFields(
+        {
+          name: "🟩 Enemy Deaths",
+          value: `**${enemyDeaths}**`,
+          inline: true
+        },
+        {
+          name: "⬛ DNV Deaths",
+          value: `**${dnvDeaths}**`,
+          inline: true
+        },
+        {
+          name: "💀 K/D Ratio",
+          value: `**${kd}**`,
+          inline: true
+        }
+      )
+      .setImage("attachment://pvp-stats.png")
+      .setFooter({
+        text: "DNV Combat Analytics • Auto-updated"
+      })
+      .setTimestamp();
+
+    const existingMessage = await findExistingStatsMessage(statsChannel);
+
+    if (existingMessage) {
+      await existingMessage.edit({
+        embeds: [statsEmbed],
+        files: [attachment]
+      });
+    } else {
+      const sent = await statsChannel.send({
+        embeds: [statsEmbed],
+        files: [attachment]
+      });
+
+      statsMessageId = sent.id;
+    }
+  } catch (err) {
+    console.error("[PvP Stats Error]", err);
+  } finally {
+    isUpdating = false;
+  }
 }
 
 module.exports = {
