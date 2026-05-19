@@ -1,4 +1,5 @@
 // modules/pvpStats.js
+
 const { EmbedBuilder } = require("discord.js");
 
 const REPORT_FORUM_ID = "1506223555388506204";
@@ -6,7 +7,9 @@ const STATS_CHANNEL_ID = "1506267342357921812";
 
 function getField(embed, names) {
   const field = embed.fields?.find(f =>
-    names.some(name => f.name.toLowerCase().includes(name.toLowerCase()))
+    names.some(name =>
+      f.name.toLowerCase().includes(name.toLowerCase())
+    )
   );
 
   if (!field) return 0;
@@ -15,9 +18,13 @@ function getField(embed, names) {
   return number ? Number(number) : 0;
 }
 
-function makeBar(label, value, max) {
-  const size = max > 0 ? Math.round((value / max) * 20) : 0;
-  return `${label} ${"█".repeat(size)}${"░".repeat(20 - size)} ${value}`;
+function progressBar(value, max) {
+  const percentage = max > 0 ? value / max : 0;
+
+  const filled = Math.round(percentage * 10);
+  const empty = 10 - filled;
+
+  return `🟥 ${"█".repeat(filled)}${"░".repeat(empty)} ${value}`;
 }
 
 async function rebuildPvpStats(client) {
@@ -25,59 +32,92 @@ async function rebuildPvpStats(client) {
   const statsChannel = await client.channels.fetch(STATS_CHANNEL_ID);
 
   let totalReports = 0;
-  let enemyCasualties = 0; // DNV kills
-  let dnvCasualties = 0;   // DNV deaths
+  let enemyCasualties = 0;
+  let dnvCasualties = 0;
 
   const active = await forum.threads.fetchActive();
 
   for (const [, thread] of active.threads) {
-    const messages = await thread.messages.fetch({ limit: 1 });
-    const msg = messages.last() || messages.first();
+    try {
+      const messages = await thread.messages.fetch({ limit: 1 });
 
-    if (!msg?.embeds?.length) continue;
+      const msg = messages.last() || messages.first();
 
-    const embed = msg.embeds[0];
+      if (!msg?.embeds?.length) continue;
 
-    const dnvKills = getField(embed, [
-      "dnv kills",
-      "enemy casualties",
-      "kills"
-    ]);
+      const embed = msg.embeds[0];
 
-    const dnvDeaths = getField(embed, [
-      "dnv casualties",
-      "dnv deaths",
-      "deaths"
-    ]);
+      const dnvKills = getField(embed, [
+        "dnv kills",
+        "enemy casualties",
+        "kills"
+      ]);
 
-    enemyCasualties += dnvKills;
-    dnvCasualties += dnvDeaths;
-    totalReports++;
+      const dnvDeaths = getField(embed, [
+        "dnv casualties",
+        "dnv deaths",
+        "deaths"
+      ]);
+
+      enemyCasualties += dnvKills;
+      dnvCasualties += dnvDeaths;
+
+      totalReports++;
+    } catch (err) {
+      console.error(`Failed reading thread ${thread.id}`, err);
+    }
   }
 
-  const max = Math.max(enemyCasualties, dnvCasualties);
-  const kd = dnvCasualties > 0
-    ? (enemyCasualties / dnvCasualties).toFixed(2)
-    : enemyCasualties.toFixed(2);
+  const kd =
+    dnvCasualties > 0
+      ? (enemyCasualties / dnvCasualties).toFixed(2)
+      : enemyCasualties.toFixed(2);
 
-  const histogram = [
-    makeBar("Enemy casualties", enemyCasualties, max),
-    makeBar("DNV casualties  ", dnvCasualties, max)
-  ].join("\n");
+  const max = Math.max(enemyCasualties, dnvCasualties);
 
   const statsEmbed = new EmbedBuilder()
-    .setTitle("PvP Statistics")
-    .setColor(0xb30000)
-    .setDescription(`\`\`\`${histogram}\`\`\``)
+    .setTitle("📊 DNV PvP Statistics")
+    .setColor("#b30000")
     .addFields(
-      { name: "Total PvP reports", value: `${totalReports}`, inline: true },
-      { name: "Enemy casualties", value: `${enemyCasualties}`, inline: true },
-      { name: "DNV casualties", value: `${dnvCasualties}`, inline: true },
-      { name: "Total K/D Ratio", value: `${kd}`, inline: true }
+      {
+        name: "Enemy Casualties",
+        value: progressBar(enemyCasualties, max),
+        inline: false
+      },
+      {
+        name: "DNV Casualties",
+        value: progressBar(dnvCasualties, max),
+        inline: false
+      },
+      {
+        name: "Total PvP Reports",
+        value: `${totalReports}`,
+        inline: true
+      },
+      {
+        name: "Enemy Kills",
+        value: `${enemyCasualties}`,
+        inline: true
+      },
+      {
+        name: "DNV Deaths",
+        value: `${dnvCasualties}`,
+        inline: true
+      },
+      {
+        name: "Total K/D Ratio",
+        value: `${kd}`,
+        inline: true
+      }
     )
+    .setFooter({
+      text: "DNV Combat Analytics"
+    })
     .setTimestamp();
 
-  await statsChannel.send({ embeds: [statsEmbed] });
+  await statsChannel.send({
+    embeds: [statsEmbed]
+  });
 }
 
 module.exports = {
