@@ -5,11 +5,13 @@ const { REST, Routes } = require("discord.js");
 const friendlyEnemy = require("./modules/friendly-enemy");
 const reportIncident = require("./modules/report-incident");
 const tickets = require("./modules/tickets");
+const pvpReport = require("./modules/pvpReport");
 
 const commands = [
   ...friendlyEnemy.data.map(command => command.toJSON()),
   reportIncident.data.toJSON(),
-  tickets.data.toJSON()
+  tickets.data.toJSON(),
+  pvpReport.data.toJSON()
 ];
 
 const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
