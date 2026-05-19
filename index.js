@@ -1,17 +1,24 @@
 require("dotenv").config();
 
-const { Client, Collection, GatewayIntentBits } = require("discord.js");
+const { Client, Collection, GatewayIntentBits, Partials } = require("discord.js");
 
 const friendlyEnemy = require("./modules/friendly-enemy");
 const reportIncident = require("./modules/report-incident");
 const tickets = require("./modules/tickets");
 const steamNews = require("./modules/steam_news");
 const pvpReport = require("./modules/pvpReport");
+const { rebuildPvpStats } = require("./modules/pvpStats");
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ],
+  partials: [
+    Partials.Channel,
+    Partials.Message
   ]
 });
 
@@ -23,9 +30,22 @@ client.modules.set(tickets.name, tickets);
 client.modules.set(steamNews.name, steamNews);
 client.modules.set(pvpReport.name, pvpReport);
 
-client.once("clientReady", () => {
+client.once("clientReady", async () => {
   console.log(`Logged in as ${client.user.tag}`);
   steamNews.start(client);
+  await rebuildPvpStats(client);
+});
+
+client.on("threadCreate", async () => {
+  await rebuildPvpStats(client);
+});
+
+client.on("messageDelete", async () => {
+  await rebuildPvpStats(client);
+});
+
+client.on("messageUpdate", async () => {
+  await rebuildPvpStats(client);
 });
 
 client.on("interactionCreate", async interaction => {
