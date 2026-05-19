@@ -432,8 +432,6 @@ async function handleInteraction(interaction) {
       session.entries.push(entry);
     }
 
-    session.currentMemberId = null;
-    session.currentMemberLabel = null;
     session.selectedCategory = null;
     session.currentShips = [];
 
