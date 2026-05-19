@@ -8,12 +8,8 @@ const STATS_CHANNEL_ID = "1506267342357921812";
 
 const chartCanvas = new ChartJSNodeCanvas({
   width: 900,
-  height: 450,
-  backgroundColour: "#202126",
-  chartCallback: ChartJS => {
-    ChartJS.defaults.font.family = "Arial";
-    ChartJS.defaults.color = "#ffffff";
-  }
+  height: 360,
+  backgroundColour: "#202126"
 });
 
 function getField(embed, names) {
@@ -33,72 +29,38 @@ async function createStatsChart(enemyCasualties, dnvCasualties) {
   const configuration = {
     type: "bar",
     data: {
-      labels: ["Enemy Casualties", "DNV Casualties"],
+      labels: ["", ""],
       datasets: [
         {
           data: [enemyCasualties, dnvCasualties],
-          backgroundColor: ["#c40000", "#586070"],
+          backgroundColor: ["#d00000", "#586070"],
           borderColor: ["#ff3b3b", "#9ca3af"],
-          borderWidth: 2,
-          borderRadius: 14,
-          barPercentage: 0.55
+          borderWidth: 3,
+          borderRadius: 16,
+          barPercentage: 0.5
         }
       ]
     },
     options: {
       responsive: false,
-      layout: {
-        padding: {
-          top: 20,
-          left: 25,
-          right: 25,
-          bottom: 15
-        }
-      },
       plugins: {
-        legend: {
-          display: false
-        },
-        title: {
-          display: true,
-          text: "DNV PvP Combat Overview",
-          color: "#ffffff",
-          font: {
-            family: "Arial",
-            size: 30,
-            weight: "bold"
-          },
-          padding: {
-            bottom: 30
-          }
-        }
+        legend: { display: false },
+        title: { display: false },
+        tooltip: { enabled: false }
       },
       scales: {
         x: {
-          ticks: {
-            color: "#ffffff",
-            font: {
-              family: "Arial",
-              size: 18,
-              weight: "bold"
-            }
-          },
-          grid: {
-            display: false
-          }
+          ticks: { display: false },
+          grid: { display: false },
+          border: { display: false }
         },
         y: {
           beginAtZero: true,
-          ticks: {
-            color: "#d1d5db",
-            font: {
-              family: "Arial",
-              size: 15
-            }
-          },
+          ticks: { display: false },
           grid: {
-            color: "#383b44"
-          }
+            color: "#363944"
+          },
+          border: { display: false }
         }
       }
     }
@@ -126,20 +88,18 @@ async function rebuildPvpStats(client) {
 
       const embed = msg.embeds[0];
 
-      const dnvKills = getField(embed, [
+      enemyCasualties += getField(embed, [
         "dnv kills",
         "enemy casualties",
         "kills"
       ]);
 
-      const dnvDeaths = getField(embed, [
+      dnvCasualties += getField(embed, [
         "dnv casualties",
         "dnv deaths",
         "deaths"
       ]);
 
-      enemyCasualties += dnvKills;
-      dnvCasualties += dnvDeaths;
       totalReports++;
     } catch (err) {
       console.error(`Failed reading thread ${thread.id}`, err);
@@ -162,18 +122,17 @@ async function rebuildPvpStats(client) {
     .setColor("#b30000")
     .setDescription(
       [
-        "📊 **Live combat statistics based on active PvP reports**",
+        "📊 **Live combat statistics**",
         "",
         `🔥 **Enemy Casualties:** \`${enemyCasualties}\``,
         `🛡️ **DNV Casualties:** \`${dnvCasualties}\``,
-        `💀 **Total K/D Ratio:** \`${kd}\``,
-        `📁 **PvP Reports Counted:** \`${totalReports}\``
+        `💀 **K/D Ratio:** \`${kd}\``,
+        `📁 **Reports Counted:** \`${totalReports}\``
       ].join("\n")
     )
-    .setImage("attachment://pvp-stats.png")
     .addFields(
       {
-        name: "⚔️ Enemy Casualties",
+        name: "🔥 Enemy Casualties",
         value: `**${enemyCasualties}**`,
         inline: true
       },
@@ -188,6 +147,7 @@ async function rebuildPvpStats(client) {
         inline: true
       }
     )
+    .setImage("attachment://pvp-stats.png")
     .setFooter({
       text: "DNV Combat Analytics • Auto-updated"
     })
