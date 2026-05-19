@@ -9,7 +9,10 @@ const steamNews = require("./modules/steam_news");
 const pvpReport = require("./modules/pvpReport");
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds]
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers
+  ]
 });
 
 client.modules = new Collection();
@@ -66,4 +69,4 @@ client.on("interactionCreate", async interaction => {
   }
 });
 
-client.login(process.env.TOKEN); 
+client.login(process.env.TOKEN);
