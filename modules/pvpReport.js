@@ -141,6 +141,10 @@ async function getDnvMembers(guild) {
     .slice(0, 25);
 }
 
+function getSession(interaction) {
+  return sessions.get(interaction.user.id);
+}
+
 function buildMemberMenu(session) {
   return new StringSelectMenuBuilder()
     .setCustomId("pvp_member")
@@ -247,6 +251,15 @@ function buildSessionComponents(session) {
   return components;
 }
 
+async function updateSessionMessage(interaction, session) {
+  await interaction.deferUpdate();
+
+  return interaction.editReply({
+    content: buildSessionContent(session),
+    components: buildSessionComponents(session),
+  });
+}
+
 async function makePieChart(enemy, dnv) {
   const canvas = new ChartJSNodeCanvas({ width: 700, height: 450 });
 
@@ -340,7 +353,8 @@ async function handleInteraction(interaction) {
   }
 
   if (interaction.isStringSelectMenu() && interaction.customId === "pvp_member") {
-    const session = sessions.get(interaction.user.id);
+    const session = getSession(interaction);
+
     if (!session) {
       return interaction.reply({ content: "Session mangler. Start på nytt.", ephemeral: true });
     }
@@ -351,14 +365,12 @@ async function handleInteraction(interaction) {
 
     sessions.set(interaction.user.id, session);
 
-    return interaction.update({
-      content: buildSessionContent(session),
-      components: buildSessionComponents(session),
-    });
+    return updateSessionMessage(interaction, session);
   }
 
   if (interaction.isStringSelectMenu() && interaction.customId === "pvp_ship_category") {
-    const session = sessions.get(interaction.user.id);
+    const session = getSession(interaction);
+
     if (!session) {
       return interaction.reply({ content: "Session mangler. Start på nytt.", ephemeral: true });
     }
@@ -368,14 +380,12 @@ async function handleInteraction(interaction) {
 
     sessions.set(interaction.user.id, session);
 
-    return interaction.update({
-      content: buildSessionContent(session),
-      components: buildSessionComponents(session),
-    });
+    return updateSessionMessage(interaction, session);
   }
 
   if (interaction.isStringSelectMenu() && interaction.customId === "pvp_ships") {
-    const session = sessions.get(interaction.user.id);
+    const session = getSession(interaction);
+
     if (!session) {
       return interaction.reply({ content: "Session mangler. Start på nytt.", ephemeral: true });
     }
@@ -384,14 +394,12 @@ async function handleInteraction(interaction) {
 
     sessions.set(interaction.user.id, session);
 
-    return interaction.update({
-      content: buildSessionContent(session),
-      components: buildSessionComponents(session),
-    });
+    return updateSessionMessage(interaction, session);
   }
 
   if (interaction.isButton() && interaction.customId === "pvp_add_entry") {
-    const session = sessions.get(interaction.user.id);
+    const session = getSession(interaction);
+
     if (!session) {
       return interaction.reply({ content: "Session mangler. Start på nytt.", ephemeral: true });
     }
@@ -431,14 +439,12 @@ async function handleInteraction(interaction) {
 
     sessions.set(interaction.user.id, session);
 
-    return interaction.update({
-      content: buildSessionContent(session),
-      components: buildSessionComponents(session),
-    });
+    return updateSessionMessage(interaction, session);
   }
 
   if (interaction.isButton() && interaction.customId === "pvp_clear_current") {
-    const session = sessions.get(interaction.user.id);
+    const session = getSession(interaction);
+
     if (!session) {
       return interaction.reply({ content: "Session mangler. Start på nytt.", ephemeral: true });
     }
@@ -450,14 +456,12 @@ async function handleInteraction(interaction) {
 
     sessions.set(interaction.user.id, session);
 
-    return interaction.update({
-      content: buildSessionContent(session),
-      components: buildSessionComponents(session),
-    });
+    return updateSessionMessage(interaction, session);
   }
 
   if (interaction.isButton() && interaction.customId === "pvp_clear_entries") {
-    const session = sessions.get(interaction.user.id);
+    const session = getSession(interaction);
+
     if (!session) {
       return interaction.reply({ content: "Session mangler. Start på nytt.", ephemeral: true });
     }
@@ -470,14 +474,11 @@ async function handleInteraction(interaction) {
 
     sessions.set(interaction.user.id, session);
 
-    return interaction.update({
-      content: buildSessionContent(session),
-      components: buildSessionComponents(session),
-    });
+    return updateSessionMessage(interaction, session);
   }
 
   if (interaction.isButton() && interaction.customId === "pvp_open_modal") {
-    const session = sessions.get(interaction.user.id);
+    const session = getSession(interaction);
 
     if (!session || !session.entries.length) {
       return interaction.reply({
@@ -525,7 +526,7 @@ async function handleInteraction(interaction) {
   }
 
   if (interaction.isModalSubmit() && interaction.customId === "pvp_submit") {
-    const session = sessions.get(interaction.user.id);
+    const session = getSession(interaction);
 
     if (!session) {
       return interaction.reply({ content: "Rapport-data mangler.", ephemeral: true });
