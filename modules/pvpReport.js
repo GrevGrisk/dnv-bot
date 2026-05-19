@@ -271,7 +271,7 @@ function buildChart(enemy, dnv) {
       datasets: [
         {
           data: [enemyPct, dnvPct],
-          backgroundColor: ["#3498db", "#ff5c8a"],
+          backgroundColor: ["#ff3b30", "#34c759"],
           borderColor: "#ffffff",
           borderWidth: 2,
         },
@@ -287,7 +287,7 @@ function buildChart(enemy, dnv) {
       },
       title: {
         display: true,
-        text: "PvP Casualties",
+        text: "PvP Results",
         fontColor: "#ffffff",
         fontSize: 24,
       },
