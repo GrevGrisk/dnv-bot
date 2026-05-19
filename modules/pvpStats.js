@@ -7,9 +7,9 @@ const REPORT_FORUM_ID = "1506223555388506204";
 const STATS_CHANNEL_ID = "1506267342357921812";
 
 const chartCanvas = new ChartJSNodeCanvas({
-  width: 900,
-  height: 360,
-  backgroundColour: "#202126"
+  width: 1000,
+  height: 520,
+  backgroundColour: "#111318"
 });
 
 function getField(embed, names) {
@@ -25,24 +25,32 @@ function getField(embed, names) {
   return number ? Number(number) : 0;
 }
 
-async function createStatsChart(enemyCasualties, dnvCasualties) {
+async function createStatsChart(enemyDeaths, dnvDeaths) {
   const configuration = {
     type: "bar",
     data: {
-      labels: ["", ""],
+      labels: ["Enemy Deaths", "DNV Deaths"],
       datasets: [
         {
-          data: [enemyCasualties, dnvCasualties],
-          backgroundColor: ["#d00000", "#586070"],
-          borderColor: ["#ff3b3b", "#9ca3af"],
+          data: [enemyDeaths, dnvDeaths],
+          backgroundColor: ["#63c832", "#3b3f46"],
+          borderColor: ["#b8ff8f", "#9ca3af"],
           borderWidth: 3,
-          borderRadius: 16,
-          barPercentage: 0.5
+          borderRadius: 14,
+          barPercentage: 0.55
         }
       ]
     },
     options: {
       responsive: false,
+      layout: {
+        padding: {
+          top: 20,
+          left: 40,
+          right: 40,
+          bottom: 25
+        }
+      },
       plugins: {
         legend: { display: false },
         title: { display: false },
@@ -50,17 +58,34 @@ async function createStatsChart(enemyCasualties, dnvCasualties) {
       },
       scales: {
         x: {
-          ticks: { display: false },
-          grid: { display: false },
-          border: { display: false }
+          ticks: {
+            color: "#e5e7eb",
+            font: {
+              size: 20,
+              weight: "bold"
+            }
+          },
+          grid: {
+            display: false
+          },
+          border: {
+            color: "#e5e7eb"
+          }
         },
         y: {
           beginAtZero: true,
-          ticks: { display: false },
-          grid: {
-            color: "#363944"
+          ticks: {
+            color: "#e5e7eb",
+            font: {
+              size: 18
+            }
           },
-          border: { display: false }
+          grid: {
+            color: "#2f333b"
+          },
+          border: {
+            color: "#e5e7eb"
+          }
         }
       }
     }
@@ -74,8 +99,8 @@ async function rebuildPvpStats(client) {
   const statsChannel = await client.channels.fetch(STATS_CHANNEL_ID);
 
   let totalReports = 0;
-  let enemyCasualties = 0;
-  let dnvCasualties = 0;
+  let enemyDeaths = 0;
+  let dnvDeaths = 0;
 
   const active = await forum.threads.fetchActive();
 
@@ -88,13 +113,14 @@ async function rebuildPvpStats(client) {
 
       const embed = msg.embeds[0];
 
-      enemyCasualties += getField(embed, [
+      enemyDeaths += getField(embed, [
         "dnv kills",
         "enemy casualties",
+        "enemy deaths",
         "kills"
       ]);
 
-      dnvCasualties += getField(embed, [
+      dnvDeaths += getField(embed, [
         "dnv casualties",
         "dnv deaths",
         "deaths"
@@ -107,11 +133,11 @@ async function rebuildPvpStats(client) {
   }
 
   const kd =
-    dnvCasualties > 0
-      ? (enemyCasualties / dnvCasualties).toFixed(2)
-      : enemyCasualties.toFixed(2);
+    dnvDeaths > 0
+      ? (enemyDeaths / dnvDeaths).toFixed(2)
+      : enemyDeaths.toFixed(2);
 
-  const chartBuffer = await createStatsChart(enemyCasualties, dnvCasualties);
+  const chartBuffer = await createStatsChart(enemyDeaths, dnvDeaths);
 
   const attachment = new AttachmentBuilder(chartBuffer, {
     name: "pvp-stats.png"
@@ -122,32 +148,40 @@ async function rebuildPvpStats(client) {
     .setColor("#b30000")
     .setDescription(
       [
-        "📊 **Live combat statistics**",
+        "📊 **Live combat statistics based on active PvP reports**",
         "",
-        `🔥 **Enemy Casualties:** \`${enemyCasualties}\``,
-        `🛡️ **DNV Casualties:** \`${dnvCasualties}\``,
-        `💀 **K/D Ratio:** \`${kd}\``,
-        `📁 **Reports Counted:** \`${totalReports}\``
+        `🟩 **Enemy Deaths:** \`${enemyDeaths}\``,
+        `⬛ **DNV Deaths:** \`${dnvDeaths}\``,
+        `💀 **Total K/D Ratio:** \`${kd}\``,
+        `📁 **PvP Reports Counted:** \`${totalReports}\``,
+        "",
+        "━━━━━━━━━━━━━━━━━━━━",
+        "🟩 **Enemy Deaths**     ⬛ **DNV Deaths**"
       ].join("\n")
     )
+    .setImage("attachment://pvp-stats.png")
     .addFields(
       {
-        name: "🔥 Enemy Casualties",
-        value: `**${enemyCasualties}**`,
+        name: "🟩 Enemy Deaths",
+        value: `**${enemyDeaths}**`,
         inline: true
       },
       {
-        name: "🛡️ DNV Casualties",
-        value: `**${dnvCasualties}**`,
+        name: "⬛ DNV Deaths",
+        value: `**${dnvDeaths}**`,
         inline: true
       },
       {
         name: "💀 K/D Ratio",
         value: `**${kd}**`,
         inline: true
+      },
+      {
+        name: "📁 PvP Reports",
+        value: `**${totalReports}**`,
+        inline: true
       }
     )
-    .setImage("attachment://pvp-stats.png")
     .setFooter({
       text: "DNV Combat Analytics • Auto-updated"
     })
