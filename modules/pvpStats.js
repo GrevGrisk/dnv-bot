@@ -9,7 +9,11 @@ const STATS_CHANNEL_ID = "1506267342357921812";
 const chartCanvas = new ChartJSNodeCanvas({
   width: 900,
   height: 450,
-  backgroundColour: "#1f2026"
+  backgroundColour: "#202126",
+  chartCallback: ChartJS => {
+    ChartJS.defaults.font.family = "Arial";
+    ChartJS.defaults.color = "#ffffff";
+  }
 });
 
 function getField(embed, names) {
@@ -32,32 +36,40 @@ async function createStatsChart(enemyCasualties, dnvCasualties) {
       labels: ["Enemy Casualties", "DNV Casualties"],
       datasets: [
         {
-          label: "Casualties",
           data: [enemyCasualties, dnvCasualties],
-          backgroundColor: ["#b30000", "#444b5a"],
-          borderColor: ["#ff3333", "#7d8597"],
+          backgroundColor: ["#c40000", "#586070"],
+          borderColor: ["#ff3b3b", "#9ca3af"],
           borderWidth: 2,
-          borderRadius: 12
+          borderRadius: 14,
+          barPercentage: 0.55
         }
       ]
     },
     options: {
       responsive: false,
+      layout: {
+        padding: {
+          top: 20,
+          left: 25,
+          right: 25,
+          bottom: 15
+        }
+      },
       plugins: {
         legend: {
           display: false
         },
         title: {
           display: true,
-          text: "DNV PvP Combat Statistics",
+          text: "DNV PvP Combat Overview",
           color: "#ffffff",
           font: {
-            size: 28,
+            family: "Arial",
+            size: 30,
             weight: "bold"
           },
           padding: {
-            top: 20,
-            bottom: 25
+            bottom: 30
           }
         }
       },
@@ -66,6 +78,7 @@ async function createStatsChart(enemyCasualties, dnvCasualties) {
           ticks: {
             color: "#ffffff",
             font: {
+              family: "Arial",
               size: 18,
               weight: "bold"
             }
@@ -79,11 +92,12 @@ async function createStatsChart(enemyCasualties, dnvCasualties) {
           ticks: {
             color: "#d1d5db",
             font: {
-              size: 14
+              family: "Arial",
+              size: 15
             }
           },
           grid: {
-            color: "#343741"
+            color: "#383b44"
           }
         }
       }
@@ -144,33 +158,38 @@ async function rebuildPvpStats(client) {
   });
 
   const statsEmbed = new EmbedBuilder()
-    .setTitle("DNV PvP Statistics")
+    .setTitle("⚔️ DNV PvP Statistics")
     .setColor("#b30000")
+    .setDescription(
+      [
+        "📊 **Live combat statistics based on active PvP reports**",
+        "",
+        `🔥 **Enemy Casualties:** \`${enemyCasualties}\``,
+        `🛡️ **DNV Casualties:** \`${dnvCasualties}\``,
+        `💀 **Total K/D Ratio:** \`${kd}\``,
+        `📁 **PvP Reports Counted:** \`${totalReports}\``
+      ].join("\n")
+    )
     .setImage("attachment://pvp-stats.png")
     .addFields(
       {
-        name: "Enemy Casualties",
+        name: "⚔️ Enemy Casualties",
         value: `**${enemyCasualties}**`,
         inline: true
       },
       {
-        name: "DNV Casualties",
+        name: "🛡️ DNV Casualties",
         value: `**${dnvCasualties}**`,
         inline: true
       },
       {
-        name: "K/D Ratio",
+        name: "💀 K/D Ratio",
         value: `**${kd}**`,
-        inline: true
-      },
-      {
-        name: "PvP Reports",
-        value: `**${totalReports}**`,
         inline: true
       }
     )
     .setFooter({
-      text: "DNV Combat Analytics"
+      text: "DNV Combat Analytics • Auto-updated"
     })
     .setTimestamp();
 
