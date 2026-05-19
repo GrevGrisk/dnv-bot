@@ -24,10 +24,7 @@ const sessions = new Map();
 const SHIP_CATEGORIES = {
   rate7: {
     label: "Rate VII",
-    ships: [
-      "Pickle - Rate VII",
-      "Friede - Transport Rate VII Flute",
-    ],
+    ships: ["Pickle - Rate VII", "Friede - Transport Rate VII Flute"],
   },
   rate6: {
     label: "Rate VI",
@@ -132,6 +129,7 @@ async function buildDnvMemberMenu(guild) {
   await guild.members.fetch();
 
   const role = guild.roles.cache.get(DNV_ROLE_ID);
+
   const members = role.members
     .filter(member => !member.user.bot)
     .sort((a, b) => a.displayName.localeCompare(b.displayName))
@@ -403,11 +401,12 @@ module.exports = {
       });
     }
 
+    await interaction.deferReply({ ephemeral: true });
+
     await postAdminPanel(client);
 
-    return interaction.reply({
+    return interaction.editReply({
       content: "PvP panel postet.",
-      ephemeral: true,
     });
   },
 
