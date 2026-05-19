@@ -258,20 +258,22 @@ async function updateSessionMessage(interaction, session) {
   });
 }
 
-function buildChart(enemy, dnv) {
-  const total = enemy + dnv;
+function buildChart(enemyCasualties, dnvCasualties) {
+  const dnvKills = enemyCasualties;
+  const enemyKills = dnvCasualties;
+  const total = dnvKills + enemyKills;
 
-  const enemyPct = total > 0 ? parseFloat(((enemy / total) * 100).toFixed(1)) : 0;
-  const dnvPct = total > 0 ? parseFloat(((dnv / total) * 100).toFixed(1)) : 0;
+  const dnvPct = total > 0 ? parseFloat(((dnvKills / total) * 100).toFixed(1)) : 0;
+  const enemyPct = total > 0 ? parseFloat(((enemyKills / total) * 100).toFixed(1)) : 0;
 
   const chartConfig = {
     type: "pie",
     data: {
-      labels: ["Enemy", "DNV"],
+      labels: ["DNV kills", "Enemy kills"],
       datasets: [
         {
-          data: [enemyPct, dnvPct],
-          backgroundColor: ["#ff3b30", "#34c759"],
+          data: [dnvPct, enemyPct],
+          backgroundColor: ["#34c759", "#ff3b30"],
           borderColor: "#ffffff",
           borderWidth: 2,
         },
