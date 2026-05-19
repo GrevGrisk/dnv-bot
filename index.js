@@ -17,20 +17,15 @@ client.modules.set(friendlyEnemy.name, friendlyEnemy);
 client.modules.set(reportIncident.name, reportIncident);
 client.modules.set(tickets.name, tickets);
 client.modules.set(steamNews.name, steamNews);
+client.modules.set(pvpReport.name, pvpReport);
 
-client.once("clientReady", async () => {
+client.once("clientReady", () => {
   console.log(`Logged in as ${client.user.tag}`);
   steamNews.start(client);
-
-  // Kjør denne én gang for å poste PvP Report-panelet i admin-kanalen.
-  // Etterpå kan du kommentere den ut igjen for å unngå duplikater.
-  // await pvpReport.postAdminPanel(client);
 });
 
 client.on("interactionCreate", async interaction => {
   try {
-    await pvpReport.handleInteraction(interaction);
-
     for (const module of client.modules.values()) {
       if (
         interaction.isChatInputCommand() &&
@@ -53,6 +48,10 @@ client.on("interactionCreate", async interaction => {
 
       if (interaction.isModalSubmit() && module.handleModal) {
         await module.handleModal(interaction, client);
+      }
+
+      if (module.handleInteraction) {
+        await module.handleInteraction(interaction, client);
       }
     }
   } catch (err) {
