@@ -86,14 +86,10 @@ async function checkSteamNews(client) {
     const saved = loadData();
     const latestGid = news[0].gid;
 
-    // Første oppstart: poster nyeste først
+    // Første oppstart: lagrer nyeste nyhet uten å poste gamle
     if (!saved.last_gid) {
-      for (const item of news) {
-        await sendNewsItem(channel, item);
-      }
-
       saveData(latestGid);
-      console.log("[Steam News] Postet siste 5 nyheter, nyeste først.");
+      console.log("[Steam News] Første oppstart: lagret siste nyhet uten posting.");
       return;
     }
 
@@ -109,7 +105,6 @@ async function checkSteamNews(client) {
       return;
     }
 
-    // Nye nyheter postes også nyeste først
     for (const item of newPosts) {
       await sendNewsItem(channel, item);
     }
