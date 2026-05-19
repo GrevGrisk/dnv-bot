@@ -182,6 +182,7 @@ function buildShipMenu(categoryKey) {
 
 function buildSessionContent(session) {
   const selectedMember = session.currentMemberLabel || "Ingen valgt";
+
   const selectedShips = session.currentShips.length
     ? session.currentShips.map(ship => `- ${ship}`).join("\n")
     : "Ingen valgt";
@@ -402,7 +403,9 @@ async function handleInteraction(interaction) {
       });
     }
 
-    const existingIndex = session.entries.findIndex(entry => entry.memberId === session.currentMemberId);
+    const existingIndex = session.entries.findIndex(
+      entry => entry.memberId === session.currentMemberId
+    );
 
     const entry = {
       memberId: session.currentMemberId,
@@ -411,7 +414,12 @@ async function handleInteraction(interaction) {
     };
 
     if (existingIndex >= 0) {
-      session.entries[existingIndex] = entry;
+      session.entries[existingIndex].ships = [
+        ...new Set([
+          ...session.entries[existingIndex].ships,
+          ...session.currentShips,
+        ]),
+      ];
     } else {
       session.entries.push(entry);
     }
