@@ -12,8 +12,6 @@ const {
   SlashCommandBuilder,
 } = require("discord.js");
 
-const { ChartJSNodeCanvas } = require("chartjs-node-canvas");
-
 const ADMIN_CHANNEL_ID = "1506223752969457664";
 const REPORT_FORUM_ID = "1506223555388506204";
 const ADMIN_ROLE_ID = "1499380210703794287";
@@ -260,20 +258,19 @@ async function updateSessionMessage(interaction, session) {
   });
 }
 
-async function makePieChart(enemy, dnv) {
-  const canvas = new ChartJSNodeCanvas({
-    width: 700,
-    height: 450,
-    backgroundColour: "#1e1f22",
-  });
+function buildChart(enemy, dnv) {
+  const total = enemy + dnv;
 
-  const buffer = await canvas.renderToBuffer({
+  const enemyPct = total > 0 ? parseFloat(((enemy / total) * 100).toFixed(1)) : 0;
+  const dnvPct = total > 0 ? parseFloat(((dnv / total) * 100).toFixed(1)) : 0;
+
+  const chartConfig = {
     type: "pie",
     data: {
       labels: ["Enemy", "DNV"],
       datasets: [
         {
-          data: [enemy, dnv],
+          data: [enemyPct, dnvPct],
           backgroundColor: ["#3498db", "#ff5c8a"],
           borderColor: "#ffffff",
           borderWidth: 2,
@@ -281,34 +278,38 @@ async function makePieChart(enemy, dnv) {
       ],
     },
     options: {
-      responsive: false,
-      plugins: {
-        legend: {
-          position: "top",
-          labels: {
-            color: "#ffffff",
-            font: {
-              size: 18,
-              family: "Arial",
-            },
-          },
+      legend: {
+        labels: {
+          fontColor: "#ffffff",
+          fontSize: 20,
+          fontStyle: "bold",
         },
-        title: {
-          display: true,
-          text: "PvP Casualties",
-          color: "#ffffff",
+      },
+      title: {
+        display: true,
+        text: "PvP Casualties",
+        fontColor: "#ffffff",
+        fontSize: 24,
+      },
+      plugins: {
+        datalabels: {
+          color: "#000000",
+          backgroundColor: "#ffffff",
+          borderRadius: 4,
+          padding: 4,
           font: {
-            size: 22,
-            family: "Arial",
+            size: 20,
+            weight: "bold",
+          },
+          formatter: function(value) {
+            return value + "%";
           },
         },
       },
     },
-  });
+  };
 
-  return new AttachmentBuilder(buffer, {
-    name: "pvp-piechart.png",
-  });
+  return `https://quickchart.io/chart?devicePixelRatio=3&width=800&height=600&c=${encodeURIComponent(JSON.stringify(chartConfig))}`;
 }
 
 async function postAdminPanel(client) {
@@ -568,8 +569,6 @@ async function handleInteraction(interaction) {
       })
       .join("\n\n");
 
-    const chart = await makePieChart(enemy, dnv);
-
     const embed = new EmbedBuilder()
       .setTitle("PvP Report")
       .setColor(0xb30000)
@@ -581,7 +580,7 @@ async function handleInteraction(interaction) {
         { name: "K/D ratio", value: kd, inline: true },
         { name: "Notes", value: notes }
       )
-      .setImage("attachment://pvp-piechart.png")
+      .setImage(buildChart(enemy, dnv))
       .setFooter({ text: `Created by ${interaction.user.tag}` })
       .setTimestamp();
 
@@ -595,7 +594,6 @@ async function handleInteraction(interaction) {
       name: `PvP Report - ${date}`,
       message: {
         embeds: [embed],
-        files: [chart],
       },
     });
 
