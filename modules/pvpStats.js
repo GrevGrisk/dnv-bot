@@ -18,15 +18,6 @@ function getField(embed, names) {
   return number ? Number(number) : 0;
 }
 
-function progressBar(value, max) {
-  const percentage = max > 0 ? value / max : 0;
-
-  const filled = Math.round(percentage * 10);
-  const empty = 10 - filled;
-
-  return `🟥 ${"█".repeat(filled)}${"░".repeat(empty)} ${value}`;
-}
-
 async function rebuildPvpStats(client) {
   const forum = await client.channels.fetch(REPORT_FORUM_ID);
   const statsChannel = await client.channels.fetch(STATS_CHANNEL_ID);
@@ -40,7 +31,6 @@ async function rebuildPvpStats(client) {
   for (const [, thread] of active.threads) {
     try {
       const messages = await thread.messages.fetch({ limit: 1 });
-
       const msg = messages.last() || messages.first();
 
       if (!msg?.embeds?.length) continue;
@@ -61,7 +51,6 @@ async function rebuildPvpStats(client) {
 
       enemyCasualties += dnvKills;
       dnvCasualties += dnvDeaths;
-
       totalReports++;
     } catch (err) {
       console.error(`Failed reading thread ${thread.id}`, err);
@@ -73,43 +62,25 @@ async function rebuildPvpStats(client) {
       ? (enemyCasualties / dnvCasualties).toFixed(2)
       : enemyCasualties.toFixed(2);
 
-  const max = Math.max(enemyCasualties, dnvCasualties);
-
   const statsEmbed = new EmbedBuilder()
-    .setTitle("📊 DNV PvP Statistics")
+    .setTitle("DNV PvP Statistics")
     .setColor("#b30000")
-    .addFields(
-      {
-        name: "Enemy Casualties",
-        value: progressBar(enemyCasualties, max),
-        inline: false
-      },
-      {
-        name: "DNV Casualties",
-        value: progressBar(dnvCasualties, max),
-        inline: false
-      },
-      {
-        name: "Total PvP Reports",
-        value: `${totalReports}`,
-        inline: true
-      },
-      {
-        name: "Enemy Kills",
-        value: `${enemyCasualties}`,
-        inline: true
-      },
-      {
-        name: "DNV Deaths",
-        value: `${dnvCasualties}`,
-        inline: true
-      },
-      {
-        name: "Total K/D Ratio",
-        value: `${kd}`,
-        inline: true
-      }
+    .setDescription(
+      [
+        `**Enemy Casualties:** ${enemyCasualties}`,
+        `**DNV Casualties:** ${dnvCasualties}`,
+        `**K/D Ratio:** ${kd}`,
+        `**PvP Reports:** ${totalReports}`
+      ].join("\n")
     )
+    .addFields({
+      name: "Combat Summary",
+      value:
+        `Kills: **${enemyCasualties}**\n` +
+        `Deaths: **${dnvCasualties}**\n` +
+        `K/D: **${kd}**`,
+      inline: false
+    })
     .setFooter({
       text: "DNV Combat Analytics"
     })
