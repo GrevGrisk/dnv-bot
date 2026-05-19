@@ -29,7 +29,7 @@ async function createStatsChart(enemyDeaths, dnvDeaths) {
   const configuration = {
     type: "bar",
     data: {
-      labels: ["Enemy Deaths", "DNV Deaths"],
+      labels: ["", ""],
       datasets: [
         {
           data: [enemyDeaths, dnvDeaths],
@@ -59,11 +59,7 @@ async function createStatsChart(enemyDeaths, dnvDeaths) {
       scales: {
         x: {
           ticks: {
-            color: "#e5e7eb",
-            font: {
-              size: 20,
-              weight: "bold"
-            }
+            display: false
           },
           grid: {
             display: false
