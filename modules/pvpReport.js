@@ -261,36 +261,54 @@ async function updateSessionMessage(interaction, session) {
 }
 
 async function makePieChart(enemy, dnv) {
-  const canvas = new ChartJSNodeCanvas({ width: 700, height: 450 });
+  const canvas = new ChartJSNodeCanvas({
+    width: 700,
+    height: 450,
+    backgroundColour: "#1e1f22",
+  });
 
   const buffer = await canvas.renderToBuffer({
     type: "pie",
     data: {
-      labels: ["Enemy casualties", "DNV casualties"],
+      labels: ["Enemy", "DNV"],
       datasets: [
         {
           data: [enemy, dnv],
           backgroundColor: ["#3498db", "#ff5c8a"],
+          borderColor: "#ffffff",
+          borderWidth: 2,
         },
       ],
     },
     options: {
+      responsive: false,
       plugins: {
         legend: {
+          position: "top",
           labels: {
             color: "#ffffff",
+            font: {
+              size: 18,
+              family: "Arial",
+            },
           },
         },
         title: {
           display: true,
-          text: "PvP casualties",
+          text: "PvP Casualties",
           color: "#ffffff",
+          font: {
+            size: 22,
+            family: "Arial",
+          },
         },
       },
     },
   });
 
-  return new AttachmentBuilder(buffer, { name: "pvp-piechart.png" });
+  return new AttachmentBuilder(buffer, {
+    name: "pvp-piechart.png",
+  });
 }
 
 async function postAdminPanel(client) {
