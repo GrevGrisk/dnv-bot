@@ -45,7 +45,7 @@ async function createStatsChart(enemyDeaths, dnvDeaths) {
       responsive: false,
       layout: {
         padding: {
-          top: 20,
+          top: 25,
           left: 40,
           right: 40,
           bottom: 25
@@ -155,11 +155,9 @@ async function rebuildPvpStats(client) {
         `💀 **Total K/D Ratio:** \`${kd}\``,
         `📁 **PvP Reports Counted:** \`${totalReports}\``,
         "",
-        "━━━━━━━━━━━━━━━━━━━━",
-        "🟩 **Enemy Deaths**     ⬛ **DNV Deaths**"
+        "━━━━━━━━━━━━━━━━━━━━"
       ].join("\n")
     )
-    .setImage("attachment://pvp-stats.png")
     .addFields(
       {
         name: "🟩 Enemy Deaths",
@@ -175,13 +173,9 @@ async function rebuildPvpStats(client) {
         name: "💀 K/D Ratio",
         value: `**${kd}**`,
         inline: true
-      },
-      {
-        name: "📁 PvP Reports",
-        value: `**${totalReports}**`,
-        inline: true
       }
     )
+    .setImage("attachment://pvp-stats.png")
     .setFooter({
       text: "DNV Combat Analytics • Auto-updated"
     })
